@@ -1,7 +1,5 @@
 package render
 
-import "html/template"
-
 // ViewModel is everything template.html.tmpl reads. It exists so the
 // template only ever does formatting-free field access — every number is
 // already a string, every color already resolved.
@@ -11,8 +9,7 @@ type ViewModel struct {
 	Models      string
 	Stats       StatsVM
 	TopDead     []TopDeadVM
-	Turns       []TurnVM
-	TimelineSVG template.HTML
+	Sources     []SourceVM
 	Legend      []LegendItem
 	ToolCalls   []ToolCallVM
 }
@@ -41,18 +38,19 @@ type StatsVM struct {
 	DeadTokenBlocks     int
 }
 
-type TurnVM struct {
-	RowTitle    string // "turn #14 · 00:36:37" — the index/clock live here, in the hover, instead of as two more columns competing with the bar for attention
-	DeltaLabel  string
-	RowWidthPct float64 // this turn's delta relative to the session's biggest turn — a real flamegraph encodes magnitude in length, not just in a text label
-	Blocks      []BlockVM
-}
-
-type BlockVM struct {
-	WidthPct float64
-	Slot     string
-	Dead     bool
-	Title    string
+// SourceVM is one bar of the "where the tokens came from" chart: everything
+// a single source (Bash, Read, the user, the system prompt) put into the
+// context window across the whole session. Grouping by source rather than
+// by turn is what makes the chart answer "which tool is eating my window" —
+// per-turn rows scatter one tool's cost across dozens of bars.
+type SourceVM struct {
+	Label        string // "Bash", "user", "system / tool schemas"
+	Slot         string
+	Tokens       string
+	RowWidthPct  float64 // this source's total against the biggest source's
+	LiveWidthPct float64 // share of this bar that did get referenced again
+	DeadPct      float64 // share of this bar that was never referenced again
+	Title        string
 }
 
 type LegendItem struct {

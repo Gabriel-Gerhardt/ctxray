@@ -50,11 +50,11 @@ Claude Code writes one JSON object per line to `~/.claude/projects/<project>/<se
 2. **What the assistant produced in exchange.** Output tokens split across the reply text, extended thinking, and any tool calls.
 3. **What never got used again.** Every tool result over a size threshold is checked against every assistant turn from that point on — its own reply included. If none of its distinctive content shows up anywhere later, it's flagged dead.
 
-The report leads with a plain sorted list — the five biggest dead blocks, no chart-reading required — then the flamegraph underneath for the turn-by-turn detail: one row per turn that actually added tokens, bar length proportional to how much, hatched wherever a block was flagged dead. No server, no build step, no JavaScript — inline CSS and a couple of embedded SVGs, so it opens the same from `file://` as it does hosted anywhere.
+The report leads with a plain sorted list — the five biggest dead blocks, no chart-reading required — then a bar per source underneath: everything Bash, Read, Grep, your own messages or the system prompt put into the window across the whole session, sorted worst-first, with the share that was never referenced again hatched inside each bar. Grouping by source rather than by turn is what makes it answer "which tool is eating my window"; a row per turn smears one tool's cost across dozens of bars. No server, no build step, no JavaScript — inline CSS only, so it opens the same from `file://` as it does hosted anywhere.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
-  <img src="docs/screenshot.png" alt="full ctxray report: stat tiles, a context-window timeline, and the turn-by-turn flamegraph">
+  <img src="docs/screenshot.png" alt="full ctxray report: the dead-token headline, the biggest dead blocks, and a bar per source showing where the context window went">
 </picture>
 
 Color is intentionally sparse — five fixed identities (user, Bash, Read, Grep, everything else) instead of a new hue per tool, so a session with twenty different MCP tools still reads as a handful of colors, not a rainbow. Anything not called out by name folds into "other" and gets named in the legend anyway.
@@ -65,7 +65,7 @@ Token counts under roughly 1,000 are *estimated* from character length (~4 chars
 
 "Dead" is a heuristic, not a proof: a block is flagged when none of its distinctive words show up in the assistant's reply that turn or any later one. A tool result can matter without being quoted back (a `Read` that just confirms a hunch, a `Grep` with zero matches that rules something out) — those show up hatched too. Treat the dead-token percentage as a lead worth checking on a specific turn, not a verdict on the whole session.
 
-There's no table view of the flamegraph yet — exact per-block numbers live in the hover tooltip, not on the page. And tooltips are hover-only; keyboard focus doesn't currently surface the same text.
+There's no per-turn view any more — the chart groups by source, so "which turn did this land on" isn't answerable from the page. Exact dead-vs-live splits live in the hover tooltip rather than on the page, and tooltips are hover-only; keyboard focus doesn't currently surface the same text.
 
 ## Diagram
 
@@ -87,7 +87,7 @@ flowchart LR
 
 - **Go** (standard library only — zero dependencies, `go.mod` has no `require` block)
 - `encoding/json` for the transcript parser, `html/template` + `embed` for the report
-- Zero JavaScript in the output — the flamegraph is CSS flexbox, the timeline is inline SVG
+- Zero JavaScript in the output — the bars are CSS flexbox, the hatching a CSS gradient
 - Colors are a validated categorical palette, not eyeballed — fixed hue order, checked for colorblind-safe separation before anything shipped
 
 ## Contact

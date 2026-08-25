@@ -2,7 +2,6 @@ package render
 
 import (
 	"fmt"
-	"html/template"
 	"sort"
 	"strings"
 	"time"
@@ -17,8 +16,7 @@ func buildViewModel(report analyze.Report) ViewModel {
 		Models:      joinModels(report.Models),
 		Stats:       buildStatsVM(report.Stats),
 		TopDead:     buildTopDead(report.Turns),
-		Turns:       buildTurnVMs(report.Turns),
-		TimelineSVG: template.HTML(buildTimelineSVG(report.Timeline)), //nolint:gosec // server-generated SVG, no user input reaches raw markup
+		Sources:     buildSourceVMs(report.Turns, report.Stats.ToolCallCounts),
 		Legend:      buildLegend(report.Turns),
 		ToolCalls:   buildToolCallVMs(report.Stats.ToolCallCounts),
 	}
@@ -81,64 +79,112 @@ func buildTopDead(turns []analyze.Turn) []TopDeadVM {
 	return out
 }
 
-// minRowWidthPct keeps a nearly-empty turn visible as a sliver instead of
+// minRowWidthPct keeps a nearly-empty source visible as a sliver instead of
 // vanishing to a hairline — it should still read as "tiny", just not
 // literally invisible.
 const minRowWidthPct = 2.0
 
-// buildTurnVMs renders one flamegraph row per turn that actually added
-// tokens to the context window. A turn with a zero delta — everything it
-// needed was already cached — has nothing to show in an "inflow" chart:
-// on a long session those can be most of the turns, and drawing an empty
-// row for each just buries the ones that matter under scrolling.
-func buildTurnVMs(turns []analyze.Turn) []TurnVM {
-	maxDelta := 1
+// sourceTotal accumulates one source's whole-session cost while the blocks
+// are still being walked.
+type sourceTotal struct {
+	source string
+	tokens int
+	dead   int
+}
+
+// buildSourceVMs renders one bar per source — Bash, Read, Grep, the user's
+// own messages, the system prompt — totalling everything that source put
+// into the context window across the entire session, with the share that
+// was never referenced again hatched inside its own bar.
+//
+// This is the question the chart is actually for: "which tool is eating my
+// window". A row per turn cannot answer it — one tool's cost is smeared
+// across dozens of bars, and the reader has to add them up by eye.
+func buildSourceVMs(turns []analyze.Turn, callCounts map[string]int) []SourceVM {
+	bySource := map[string]*sourceTotal{}
 	for _, t := range turns {
-		if t.ContextDelta > maxDelta {
-			maxDelta = t.ContextDelta
+		for _, b := range t.NewBlocks {
+			s, ok := bySource[b.Source]
+			if !ok {
+				s = &sourceTotal{source: b.Source}
+				bySource[b.Source] = s
+			}
+			s.tokens += b.Tokens
+			if b.Dead {
+				s.dead += b.Tokens
+			}
 		}
 	}
 
-	out := make([]TurnVM, 0, len(turns))
-	for _, t := range turns {
-		if t.ContextDelta <= 0 {
+	totals := make([]*sourceTotal, 0, len(bySource))
+	maxTokens := 1
+	for _, s := range bySource {
+		totals = append(totals, s)
+		if s.tokens > maxTokens {
+			maxTokens = s.tokens
+		}
+	}
+	// Biggest first: the chart's job is to put the worst offender at the top.
+	sort.Slice(totals, func(i, j int) bool {
+		if totals[i].tokens != totals[j].tokens {
+			return totals[i].tokens > totals[j].tokens
+		}
+		return totals[i].source < totals[j].source
+	})
+
+	out := make([]SourceVM, 0, len(totals))
+	for _, s := range totals {
+		if s.tokens <= 0 {
 			continue
 		}
-		rowWidth := 100 * float64(t.ContextDelta) / float64(maxDelta)
+		rowWidth := 100 * float64(s.tokens) / float64(maxTokens)
 		if rowWidth < minRowWidthPct {
 			rowWidth = minRowWidthPct
 		}
-		out = append(out, TurnVM{
-			RowTitle:    fmt.Sprintf("turn #%d · %s", t.Index, formatClock(t.Timestamp)),
-			DeltaLabel:  "+" + formatTokens(t.ContextDelta),
-			RowWidthPct: rowWidth,
-			Blocks:      buildBlockVMs(t.NewBlocks, t.ContextDelta),
+		deadPct := 100 * float64(s.dead) / float64(s.tokens)
+		out = append(out, SourceVM{
+			Label:        sourceLabel(s.source),
+			Slot:         string(slotFor(s.source)),
+			Tokens:       formatTokens(s.tokens),
+			RowWidthPct:  rowWidth,
+			LiveWidthPct: 100 - deadPct,
+			DeadPct:      deadPct,
+			Title:        sourceTitle(s, callCounts),
 		})
 	}
 	return out
 }
 
-func buildBlockVMs(blocks []analyze.Block, total int) []BlockVM {
-	if total <= 0 {
-		return nil
-	}
-	out := make([]BlockVM, len(blocks))
-	for i, b := range blocks {
-		out[i] = BlockVM{
-			WidthPct: 100 * float64(b.Tokens) / float64(total),
-			Slot:     string(slotFor(b.Source)),
-			Dead:     b.Dead,
-			Title:    blockTitle(b),
+// sourceLabel turns an internal source key into what the chart should call
+// it. Tool sources keep their own name rather than collapsing into their
+// color slot, so a session full of MCP tools still names each one.
+func sourceLabel(source string) string {
+	switch {
+	case source == "user":
+		return "user"
+	case source == "context:overhead":
+		return "system + schemas"
+	default:
+		if name, ok := strings.CutPrefix(source, "tool:"); ok {
+			return name
 		}
+		return source
 	}
-	return out
 }
 
-func blockTitle(b analyze.Block) string {
-	if b.Dead {
-		return fmt.Sprintf("%s — %s tokens — never referenced again", b.Label, formatTokens(b.Tokens))
+func sourceTitle(s *sourceTotal, callCounts map[string]int) string {
+	label := sourceLabel(s.source)
+	calls := ""
+	if name, ok := strings.CutPrefix(s.source, "tool:"); ok {
+		if n := callCounts[name]; n > 0 {
+			calls = fmt.Sprintf(" across %d call(s)", n)
+		}
 	}
-	return fmt.Sprintf("%s — %s tokens", b.Label, formatTokens(b.Tokens))
+	if s.dead == 0 {
+		return fmt.Sprintf("%s — %s tokens%s, all referenced again later", label, formatTokens(s.tokens), calls)
+	}
+	return fmt.Sprintf("%s — %s tokens%s, of which %s never referenced again",
+		label, formatTokens(s.tokens), calls, formatTokens(s.dead))
 }
 
 // legendOrder is the fixed slot order the legend walks, matching the
