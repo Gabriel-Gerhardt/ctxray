@@ -67,11 +67,9 @@ The report opens on the total dead-token count, lists the five biggest dead bloc
 
 ## Ceiling
 
-Token counts under roughly 1,000 are *estimated* from character length (~4 chars/token) and scaled to match what Anthropic actually billed for that turn. The totals are exact; the split between blocks within a turn is attribution, not a tokenizer count.
+"Dead" is a heuristic, not a proof. A block gets flagged when none of its distinctive words show up in the assistant's reply that turn or any later one — so a `Read` that quietly confirmed a hunch, or a `Grep` with zero matches that ruled something out, gets hatched like waste. Treat the percentage as a lead worth chasing, not a verdict.
 
-"Dead" is a heuristic, not a proof: a block is flagged when none of its distinctive words show up in the assistant's reply that turn or any later one. A tool result can matter without being quoted back — a `Read` that just confirms a hunch, a `Grep` with zero matches that rules something out — and those get hatched too. Treat the dead-token percentage as a lead worth chasing, not a verdict on the session.
-
-Exact per-source numbers live in the hover tooltip, and tooltips are hover-only — keyboard focus doesn't surface the same text yet.
+Per-block counts are estimated from character length (~4 chars/token) and scaled to what Anthropic actually billed that turn. Session totals are exact; the split between blocks inside a turn is attribution.
 
 ## Contact
 
