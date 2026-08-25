@@ -118,14 +118,10 @@
   }
   @media (max-width: 720px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .src-row { grid-template-columns: 104px 48px 1fr; gap: 8px; font-size: 11px; }
     .stat-card { grid-column: span 1; }
     .stat-card.hero { grid-column: span 2; }
   }
-
-  /* ---------- timeline ---------- */
-  .timeline svg { width: 100%; height: 130px; display: block; overflow: visible; }
-  .ctxray-timeline-area { fill: var(--slot-user); fill-opacity: .10; }
-  .ctxray-timeline-line { fill: none; stroke: var(--slot-user); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ---------- legend ---------- */
   .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 16px 2px 0; font-size: 12.5px; color: var(--ink-2); }
@@ -143,17 +139,24 @@
   .top-dead .rank-label { flex: 1; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .top-dead .rank-tokens { flex: none; font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 600; color: var(--slot-dead); }
 
-  /* ---------- flamegraph ---------- */
-  .flame-rows { display: flex; flex-direction: column; gap: 2px; }
-  .turn-row {
-    display: grid; grid-template-columns: 52px 1fr;
-    align-items: center; gap: 10px;
-    font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11px;
+  /* ---------- where the tokens came from ---------- */
+  .flame-rows { display: flex; flex-direction: column; gap: 5px; }
+  .src-row {
+    display: grid; grid-template-columns: 148px 54px 1fr;
+    align-items: center; gap: 12px;
+    font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px;
+    outline: none;
   }
-  .turn-row .delta { color: var(--ink-muted); text-align: right; }
+  .src-row .src-name {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: var(--ink-2);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .src-row .src-tokens { color: var(--ink-muted); text-align: right; }
+  .src-row:hover .block, .src-row:focus-visible .block { filter: brightness(1.14); }
   /* The track is the full-width lane every row shares, so rows stay
-     comparable; the bar inside it is sized to this turn's actual share
-     of the session's biggest turn — length carries magnitude the way a
+     comparable; the bar inside it is sized to this source's actual share
+     of the biggest source — length carries magnitude the way a
      real flamegraph does, not just a text label next to a full-width
      bar every time. */
   .turn-track { height: 20px; border-radius: 4px; overflow: hidden; background: var(--gridline); }
@@ -230,21 +233,18 @@
   </div>
   {{end}}
 
-  <h2>Context window over the session</h2>
-  <div class="panel timeline">
-    <svg viewBox="0 0 1000 160" preserveAspectRatio="none">{{.TimelineSVG}}</svg>
-  </div>
-
-  <h2>Where the tokens came from, turn by turn</h2>
-  <p class="caption">Bar length is how much this turn added, relative to the session's biggest turn. Color is where it came from. Red hatch is flagged dead. Showing {{len .Turns}} of {{.Stats.TurnCount}} turns — the rest added nothing new to the window.</p>
+  <h2>Where the tokens came from</h2>
+  <p class="caption">One bar per source, totalled across the whole session. Bar length is how much of the context window it accounts for, relative to the biggest source. The red hatch is the share that was never referenced again.</p>
   <div class="panel">
     <div class="flame-rows">
-      {{range .Turns}}
-      <div class="turn-row" title="{{.RowTitle}}">
-        <span class="delta">{{.DeltaLabel}}</span>
+      {{range .Sources}}
+      <div class="src-row" title="{{.Title}}" tabindex="0">
+        <span class="src-name"><span class="dot slot-{{.Slot}}"></span>{{.Label}}</span>
+        <span class="src-tokens">{{.Tokens}}</span>
         <div class="turn-track">
           <div class="turn-bar" style="width:{{printf "%.3f" .RowWidthPct}}%;">
-            {{range .Blocks}}<span class="block slot-{{.Slot}}{{if .Dead}} dead{{end}}" style="width:{{printf "%.3f" .WidthPct}}%;" title="{{.Title}}" tabindex="0"></span>{{end}}
+            <span class="block slot-{{.Slot}}" style="width:{{printf "%.3f" .LiveWidthPct}}%;"></span>
+            <span class="block slot-{{.Slot}} dead" style="width:{{printf "%.3f" .DeadPct}}%;"></span>
           </div>
         </div>
       </div>

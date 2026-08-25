@@ -6,11 +6,9 @@ package analyze
 func buildReport(sessionID string, models []string, wip []wipTurn, toolCallCounts map[string]int) Report {
 	stats := Stats{ToolCallCounts: toolCallCounts}
 	turns := make([]Turn, len(wip))
-	timeline := make([]TimelinePoint, len(wip))
 
 	for i, w := range wip {
 		turns[i] = w.turn
-		timeline[i] = TimelinePoint{TurnIndex: w.turn.Index, Timestamp: w.turn.Timestamp, ContextTokens: w.turn.ContextTotal}
 		accumulateStats(&stats, w.turn, i == 0)
 	}
 
@@ -26,7 +24,6 @@ func buildReport(sessionID string, models []string, wip []wipTurn, toolCallCount
 		SessionID: sessionID,
 		Models:    models,
 		Turns:     turns,
-		Timeline:  timeline,
 		Stats:     stats,
 	}
 }
