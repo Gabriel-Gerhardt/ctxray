@@ -22,17 +22,15 @@ Point `ctxray` at a coding-agent session transcript and it finds the tool output
 
 ## About
 
-A long agent session is expensive in a way the totals hide. Nothing ever leaves the context window on its own, and every request re-sends the whole thing — so a 20k-token directory listing that lands on turn 3 isn't paid for once. It's re-sent with every turn after it, billed again each time (at the cheaper cache-read rate, but billed), and it goes on taking up room until the session compacts and starts throwing things away. The bigger cost is usually that: the junk crowds out what the model actually needed.
+Nothing ever leaves a context window on its own, and every request re-sends the whole thing. The 20k-token directory listing that landed on turn 3 gets paid for again on turn 4, and again on turn 40 — and it keeps crowding out what the model actually needs until the session compacts and starts throwing things away.
 
-Plenty of things will tell you what is *in* your context window — Claude Code ships a `/context` command that breaks down the system prompt, MCP servers and memory files, more precisely than anything reading a transcript could. What none of them tell you is which of it the model never looked at again.
+`ctxray` asks the question the token totals can't: not how much you spent, but **how much of it your agent ever read.**
 
-That is a different question, and it needs the transcript rather than a snapshot: every tool result the session produced, checked against everything the model said afterward.
-
-`ctxray` reads the session log your agent already writes to disk and turns it into a single self-contained HTML report: how much each tool put into the window, and how much of that never came up again. One Go binary, no telemetry, no API key, no dashboard to sign up for, no dependencies.
+Point it at a session log and it hands back one HTML file — how much each tool put into the context window, and how much of that was never referenced again. One Go binary. No telemetry, no API key, nothing to sign up for.
 
 ## Supported formats
 
-Today `ctxray` reads Claude Code transcripts (`~/.claude/projects/*/*.jsonl`). That is the only format-specific part of it: `internal/transcript` turns a session log into messages, tool results and per-turn token usage, and nothing downstream knows or cares where those came from. Another agent is a parser away — if yours records per-turn usage, that is the piece to write.
+Claude Code today (`~/.claude/projects/*/*.jsonl`). Only `internal/transcript` knows the format — everything downstream works on messages, tool results and per-turn usage. If your agent records those, it's a parser away.
 
 ## Quickstart
 
