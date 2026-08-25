@@ -7,11 +7,11 @@
 [![go version](https://img.shields.io/badge/go-1.24%2B-00ADD8?logo=go&logoColor=white)](go.mod)
 [![license](https://img.shields.io/github/license/Gabriel-Gerhardt/ctxray)](LICENSE)
 
-Your last agent run burned 180k tokens. Which ones actually did anything?
+Your last agent run burned 160k tokens. Which ones actually did anything?
 
 Point `ctxray` at a Claude Code session transcript and it answers that in one self-contained HTML file: turn by turn, where every token in the context window came from — and how much of it was never mentioned again.
 
-![ctxray: one command, one report — 98.3% of this session's context was never referenced again](docs/demo.gif)
+![ctxray: one command, one report — nearly half of this two-hour session's context was never referenced again](docs/demo.gif)
 
 Every agent CLI tells you *how many* tokens you spent. None of them tell you *on what*. `ctxray` reconstructs it from the transcript already sitting on your disk — no telemetry, no API key, no dashboard to sign up for, no dependencies.
 
