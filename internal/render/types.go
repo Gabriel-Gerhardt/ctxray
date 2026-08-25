@@ -40,18 +40,18 @@ type TurnVM struct {
 
 type BlockVM struct {
 	WidthPct float64
-	Color    string
+	Slot     string
 	Dead     bool
 	Title    string
 }
 
 type LegendItem struct {
-	Color string
+	Slot  string
 	Label string
 }
 
 type ToolCallVM struct {
 	Name  string
 	Count int
-	Color string
+	Slot  string
 }

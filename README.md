@@ -1,16 +1,50 @@
 # ctxray
 
-Flamegraph for your agent's context window. Point it at a Claude Code session transcript, get back a single HTML file that shows, turn by turn, where every token in the context window came from — and how much of it was never mentioned again.
+**Flamegraph for your agent's context window.**
+
+[![ci](https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml)
+[![go report card](https://goreportcard.com/badge/github.com/Gabriel-Gerhardt/ctxray)](https://goreportcard.com/report/github.com/Gabriel-Gerhardt/ctxray)
+[![go version](https://img.shields.io/badge/go-1.24%2B-00ADD8?logo=go&logoColor=white)](go.mod)
+[![license](https://img.shields.io/github/license/Gabriel-Gerhardt/ctxray)](LICENSE)
+
+Point it at a Claude Code session transcript. Get back one HTML file that shows, turn by turn, where every token in the context window came from — and how much of it was never mentioned again.
+
+![the hero number](docs/hero.png)
 
 ```
-ctxray: 5 turns · 12.1k tokens entered · peak window 12.1k
-ctxray: 8.0% dead context — 971 tokens across 2 tool result(s) never referenced again
+$ ctxray my-session.jsonl
+ctxray: 15 turns · 4.3k tokens entered · peak window 4.3k
+ctxray: 89.6% dead context — 3.9k tokens across 8 tool result(s) never referenced again
 ctxray: report written to ctxray-report.html
 ```
 
-![ctxray report screenshot](docs/screenshot.png)
+I kept burning six-figure token budgets on a session and having no idea afterward what any of it actually bought me. Every agent CLI tells you *how many* tokens you spent; none of them will tell you *on what*. So `ctxray` reconstructs it from the transcript you already have on disk — no telemetry, no API key, no dashboard to sign up for.
 
-## How It Works
+## Quickstart
+
+```bash
+git clone https://github.com/Gabriel-Gerhardt/ctxray
+cd ctxray
+go build -o ctxray .
+./ctxray testdata/sample.jsonl -open
+```
+
+That last command runs against the synthetic demo transcript checked into the repo (no real conversation content) so you can see a report before hunting down a real session file. Once you've got one:
+
+```bash
+./ctxray ~/.claude/projects/*/*.jsonl -open
+```
+
+Or, once a release is tagged: `go install github.com/Gabriel-Gerhardt/ctxray@latest`
+
+```
+Usage: ctxray [flags] <session.jsonl>
+
+  -o string   output HTML file (default "ctxray-report.html")
+  -open       open the report in the default browser when done
+```
+
+## How it works
 
 Claude Code writes one JSON object per line to `~/.claude/projects/<project>/<session>.jsonl` as a session runs — every message, every tool call, every tool result, and the exact token usage Anthropic billed for each assistant turn (input, output, cache-write, cache-read).
 
@@ -20,20 +54,19 @@ Claude Code writes one JSON object per line to `~/.claude/projects/<project>/<se
 2. **What the assistant produced in exchange.** Output tokens split across the reply text, extended thinking, and any tool calls.
 3. **What never got used again.** Every tool result over a size threshold is checked against every assistant turn from that point on — its own reply included. If none of its distinctive content shows up anywhere later, it's flagged dead.
 
-The result renders as a flamegraph-style HTML report: one row per turn, one segment per content source, hatched wherever a block was flagged dead. No server, no build step, no JavaScript — it's inline CSS and a couple of embedded SVGs, so it opens the same from `file://` as it does hosted anywhere.
+The result renders as one flamegraph-style HTML report: one row per turn, one segment per content source, hatched wherever a block was flagged dead. No server, no build step, no JavaScript — inline CSS and a couple of embedded SVGs, so it opens the same from `file://` as it does hosted anywhere.
+
+![full report](docs/screenshot.png)
+
+Color is intentionally sparse — five fixed identities (user, Bash, Read, Grep, everything else) instead of a new hue per tool, so a session with twenty different MCP tools still reads as a handful of colors, not a rainbow. Anything not called out by name folds into "other" and gets named in the legend anyway.
 
 ## Ceiling
 
-Token counts under roughly 1,000 tokens are *estimated* from character length (~4 chars/token) and then scaled to match what Anthropic actually billed for that turn — that makes the totals correct, but the per-block split within a turn is attribution, not an exact tokenizer count.
+Token counts under roughly 1,000 are *estimated* from character length (~4 chars/token) and scaled to match what Anthropic actually billed for that turn — that keeps the totals correct, but the per-block split within a turn is attribution, not an exact tokenizer count.
 
-"Dead" is a heuristic, not a proof: a block is flagged when none of its distinctive words show up in any later assistant turn. A tool result can matter without being quoted back (a `Read` that just confirms a hunch, a `Grep` with zero matches that rules something out) — those will show up hatched too. Treat the dead-token percentage as a lead worth investigating on a specific turn, not a verdict on the session.
+"Dead" is a heuristic, not a proof: a block is flagged when none of its distinctive words show up in the assistant's reply that turn or any later one. A tool result can matter without being quoted back (a `Read` that just confirms a hunch, a `Grep` with zero matches that rules something out) — those show up hatched too. Treat the dead-token percentage as a lead worth checking on a specific turn, not a verdict on the whole session.
 
-## Tech Stack
-
-- **Go** (standard library only — no dependencies)
-- `encoding/json` for the transcript parser
-- `html/template` + `embed` for the report — the whole binary is self-contained, and so is everything it produces
-- Zero JavaScript in the output; the "flamegraph" is CSS flexbox, the timeline is inline SVG
+There's no table view of the flamegraph yet — exact per-block numbers live in the hover tooltip, not on the page. And tooltips are hover-only; keyboard focus doesn't currently surface the same text.
 
 ## Diagram
 
@@ -52,37 +85,12 @@ flowchart LR
 - You're deciding whether a tool's output format (verbose logs vs. a summary) is worth the tokens it costs every time it's called.
 - You want a number to back up "my session was mostly dead weight" instead of a feeling.
 
-## Set-up
+## Tech Stack
 
-Requirements: Go 1.24+.
-
-```bash
-git clone https://github.com/Gabriel-Gerhardt/ctxray
-cd ctxray
-go build -o ctxray .
-./ctxray ~/.claude/projects/*/*.jsonl -open
-```
-
-Or, once a release is tagged:
-
-```bash
-go install github.com/Gabriel-Gerhardt/ctxray@latest
-```
-
-Usage:
-
-```
-ctxray [flags] <session.jsonl>
-
-  -o string   output HTML file (default "ctxray-report.html")
-  -open       open the report in the default browser when done
-```
-
-`testdata/sample.jsonl` is a small synthetic transcript (no real conversation content) if you want to try it without hunting for a real session file first:
-
-```bash
-./ctxray testdata/sample.jsonl -open
-```
+- **Go** (standard library only — zero dependencies, `go.mod` has no `require` block)
+- `encoding/json` for the transcript parser, `html/template` + `embed` for the report
+- Zero JavaScript in the output — the flamegraph is CSS flexbox, the timeline is inline SVG
+- Colors are a validated categorical palette, not eyeballed — fixed hue order, checked for colorblind-safe separation before anything shipped
 
 ## Contact
 - LinkedIn: https://www.linkedin.com/in/gabriel-gerhardt-0a8b852b9/

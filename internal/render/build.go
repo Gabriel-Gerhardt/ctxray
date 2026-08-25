@@ -68,7 +68,7 @@ func buildBlockVMs(blocks []analyze.Block, total int) []BlockVM {
 	for i, b := range blocks {
 		out[i] = BlockVM{
 			WidthPct: 100 * float64(b.Tokens) / float64(total),
-			Color:    colorFor(b.Source),
+			Slot:     string(slotFor(b.Source)),
 			Dead:     b.Dead,
 			Title:    blockTitle(b),
 		}
@@ -83,37 +83,57 @@ func blockTitle(b analyze.Block) string {
 	return fmt.Sprintf("%s — %s tokens", b.Label, formatTokens(b.Tokens))
 }
 
-// buildLegend lists every source that actually showed up, "user" and
-// "system / tool schemas" first since they're on nearly every report,
-// then every tool alphabetically.
-func buildLegend(turns []analyze.Turn) []LegendItem {
-	seen := map[string]bool{}
-	head := []LegendItem{
-		{Color: colorFor("user"), Label: "user"},
-		{Color: colorFor("context:overhead"), Label: "system / tool schemas"},
-	}
-	seen["user"] = true
-	seen["context:overhead"] = true
+// legendOrder is the fixed slot order the legend walks, matching the
+// dataviz color-formula: identities in a fixed sequence, never reordered
+// by frequency or rank. Only slots that actually appear in the session
+// make it into the rendered legend.
+var legendOrder = []struct {
+	slot  slot
+	label string
+}{
+	{slotUser, "user"},
+	{slotOverhead, "system / tool schemas"},
+	{slotBash, "Bash"},
+	{slotRead, "Read"},
+	{slotGrep, "Grep"},
+}
 
-	var tools []LegendItem
+// buildLegend walks the fixed slot order and keeps only what showed up.
+// The shared "other" slot names every tool folded into it, so grouping
+// rare tools under one color never hides which tools they were.
+func buildLegend(turns []analyze.Turn) []LegendItem {
+	present := map[slot]bool{}
+	otherNames := map[string]bool{}
 	for _, t := range turns {
 		for _, b := range t.NewBlocks {
-			name, ok := strings.CutPrefix(b.Source, "tool:")
-			if !ok || seen[b.Source] {
-				continue
+			present[slotFor(b.Source)] = true
+			if name, ok := otherToolName(b.Source); ok {
+				otherNames[name] = true
 			}
-			seen[b.Source] = true
-			tools = append(tools, LegendItem{Color: colorFor(b.Source), Label: name})
 		}
 	}
-	sort.Slice(tools, func(i, j int) bool { return tools[i].Label < tools[j].Label })
-	return append(head, tools...)
+
+	out := make([]LegendItem, 0, len(legendOrder)+1)
+	for _, o := range legendOrder {
+		if present[o.slot] {
+			out = append(out, LegendItem{Slot: string(o.slot), Label: o.label})
+		}
+	}
+	if len(otherNames) > 0 {
+		names := make([]string, 0, len(otherNames))
+		for n := range otherNames {
+			names = append(names, n)
+		}
+		sort.Strings(names)
+		out = append(out, LegendItem{Slot: string(slotOther), Label: "other (" + strings.Join(names, ", ") + ")"})
+	}
+	return out
 }
 
 func buildToolCallVMs(counts map[string]int) []ToolCallVM {
 	out := make([]ToolCallVM, 0, len(counts))
 	for name, n := range counts {
-		out = append(out, ToolCallVM{Name: name, Count: n, Color: colorFor("tool:" + name)})
+		out = append(out, ToolCallVM{Name: name, Count: n, Slot: string(slotFor("tool:" + name))})
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Count > out[j].Count })
 	return out

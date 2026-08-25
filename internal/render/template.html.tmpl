@@ -5,106 +5,170 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ctxray — {{.SessionID}}</title>
 <style>
+  /*
+    Palette: the dataviz skill's validated default (references/palette.md).
+    Five fixed categorical slots, assigned in order — never generated per
+    tool name, so the report never grows past a small, memorizable set of
+    colors no matter how many distinct MCP tools a session used.
+  */
   :root {
     color-scheme: light dark;
-    --bg: #f8fafc;
-    --panel: #ffffff;
-    --border: #e2e8f0;
-    --text: #0f172a;
-    --muted: #64748b;
-    --accent: #f43f5e;
-    --accent-bg: #fff1f2;
+    --surface:      #fcfcfb;
+    --page:         #f9f9f7;
+    --border:       rgba(11,11,11,0.10);
+    --ink:          #0b0b0b;
+    --ink-2:        #52514e;
+    --ink-muted:    #898781;
+    --gridline:     #e1e0d9;
+
+    --slot-user:     #2a78d6;
+    --slot-bash:     #eb6834;
+    --slot-read:     #1baf7a;
+    --slot-grep:     #eda100;
+    --slot-other:    #4a3aa7;
+    --slot-overhead: #898781;
+    --slot-dead:     #d03b3b;
+    --slot-dead-bg:  #fbeceb;
+
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, SFMono-Regular, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
-    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #0b1120;
-      --panel: #111827;
-      --border: #1f2937;
-      --text: #e5e7eb;
-      --muted: #94a3b8;
-      --accent: #fb7185;
-      --accent-bg: #2a1116;
+      --surface:   #1a1a19;
+      --page:      #0d0d0d;
+      --border:    rgba(255,255,255,0.10);
+      --ink:       #ffffff;
+      --ink-2:     #c3c2b7;
+      --ink-muted: #898781;
+      --gridline:  #2c2c2a;
+
+      --slot-user:  #3987e5;
+      --slot-bash:  #d95926;
+      --slot-read:  #199e70;
+      --slot-grep:  #c98500;
+      --slot-other: #9085e9;
+      --slot-dead-bg: #2a1414;
     }
   }
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    padding: 32px 20px 64px;
-    background: var(--bg);
-    color: var(--text);
+    padding: 40px 20px 64px;
+    background: var(--page);
+    color: var(--ink);
     font-family: var(--sans);
-    line-height: 1.4;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
   }
-  main { max-width: 1100px; margin: 0 auto; }
-  header { margin-bottom: 28px; }
-  header h1 { font-size: 22px; margin: 0 0 4px; font-family: var(--mono); }
-  header .sub { color: var(--muted); font-size: 13px; font-family: var(--mono); }
+  main { max-width: 1080px; margin: 0 auto; }
 
-  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 36px 0 12px; }
+  header { margin-bottom: 32px; }
+  header h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -.01em; }
+  header .sub { color: var(--ink-muted); font-size: 13px; font-family: var(--mono); }
 
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 10px;
+  h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--ink-muted); font-weight: 600; margin: 40px 0 12px;
   }
-  .stat-card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
-  }
-  .stat-card .n { font-family: var(--mono); font-size: 22px; font-weight: 600; }
-  .stat-card .l { color: var(--muted); font-size: 12px; margin-top: 2px; }
-  .stat-card.highlight {
-    background: var(--accent-bg);
-    border-color: var(--accent);
-    grid-column: span 2;
-  }
-  .stat-card.highlight .n { color: var(--accent); font-size: 30px; }
 
   .panel {
-    background: var(--panel);
+    background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
+    border-radius: 12px;
+    padding: 18px 20px;
   }
 
-  .timeline svg { width: 100%; height: 140px; display: block; }
-  .ctxray-timeline-area { fill: var(--accent); fill-opacity: .12; }
-  .ctxray-timeline-line { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+  /* ---------- stat tiles ---------- */
+  .stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    grid-column: span 2;
+  }
+  .stat-card .n { font-size: 21px; font-weight: 600; font-variant-numeric: normal; }
+  .stat-card .l { color: var(--ink-muted); font-size: 12px; margin-top: 3px; }
+  .stat-card.hero {
+    background: var(--slot-dead-bg);
+    border-color: var(--slot-dead);
+    grid-column: span 6;
+    padding: 22px 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .stat-card.hero .n { color: var(--slot-dead); font-size: 44px; font-weight: 700; line-height: 1; }
+  .stat-card.hero .l { color: var(--ink-2); font-size: 14px; max-width: 46ch; }
+  @media (max-width: 720px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .stat-card { grid-column: span 1; }
+    .stat-card.hero { grid-column: span 2; }
+  }
 
-  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 14px 0 0; font-size: 12px; color: var(--muted); font-family: var(--mono); }
-  .legend .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+  /* ---------- timeline ---------- */
+  .timeline svg { width: 100%; height: 130px; display: block; overflow: visible; }
+  .ctxray-timeline-area { fill: var(--slot-user); fill-opacity: .10; }
+  .ctxray-timeline-line { fill: none; stroke: var(--slot-user); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-  .flame-rows { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
-  .turn-row { display: grid; grid-template-columns: 46px 68px 64px 1fr; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; }
-  .turn-row .idx { color: var(--muted); text-align: right; }
-  .turn-row .clock { color: var(--muted); }
-  .turn-row .delta { color: var(--muted); text-align: right; }
-  .turn-bar { display: flex; height: 18px; border-radius: 3px; overflow: hidden; background: var(--border); }
-  .block { position: relative; height: 100%; min-width: 1px; }
-  /* A dead block's own background comes from an inline style (its
-     source color), so the stripe pattern lives on a separate ::after
-     layer instead of the class's background-image — the shorthand
-     "background" in the inline style would otherwise reset it to none. */
+  /* ---------- legend ---------- */
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 16px 2px 0; font-size: 12.5px; color: var(--ink-2); }
+  .legend .item { display: inline-flex; align-items: center; gap: 6px; }
+  .dot { width: 9px; height: 9px; border-radius: 2.5px; display: inline-block; flex: none; }
+
+  /* ---------- flamegraph ---------- */
+  .flame-rows { display: flex; flex-direction: column; gap: 2px; }
+  .turn-row {
+    display: grid; grid-template-columns: 34px 66px 56px 1fr;
+    align-items: center; gap: 10px;
+    font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 11px;
+  }
+  .turn-row .idx, .turn-row .clock, .turn-row .delta { color: var(--ink-muted); }
+  .turn-row .idx { text-align: right; }
+  .turn-row .delta { text-align: right; }
+  .turn-bar { display: flex; height: 20px; border-radius: 4px; overflow: hidden; background: var(--gridline); }
+
+  .block { position: relative; height: 100%; min-width: 1px; transition: filter .1s ease; }
+  .block:not(:first-child) { box-shadow: inset 1.5px 0 0 var(--surface); }
+  .block:hover, .block:focus-visible { filter: brightness(1.14); outline: none; }
+  .block:focus-visible { box-shadow: inset 0 0 0 1.5px var(--ink); }
+
+  .slot-user     { background: var(--slot-user); }
+  .slot-bash     { background: var(--slot-bash); }
+  .slot-read     { background: var(--slot-read); }
+  .slot-grep     { background: var(--slot-grep); }
+  .slot-other    { background: var(--slot-other); }
+  .slot-overhead { background: var(--slot-overhead); opacity: .5; }
+
+  /* Dead is a status overlay, not a slot color — it rides on top of
+     whichever category the block already has, so the reader still sees
+     what kind of content it was AND that it's flagged, at once. */
   .block.dead::after {
     content: "";
-    position: absolute;
-    inset: 0;
-    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.35) 0 3px, rgba(255,255,255,.4) 3px 6px);
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(
+      45deg, transparent 0 3px, var(--slot-dead) 3px 4.5px
+    );
+    opacity: .8;
     pointer-events: none;
   }
 
-  table.toolcalls { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
-  table.toolcalls td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
-  table.toolcalls td.n { text-align: right; color: var(--muted); }
-  table.toolcalls .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 8px; }
+  /* ---------- tool calls table ---------- */
+  table.toolcalls { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.toolcalls td { padding: 7px 8px; border-bottom: 1px solid var(--gridline); }
+  table.toolcalls tr:last-child td { border-bottom: none; }
+  table.toolcalls td.name { display: flex; align-items: center; gap: 8px; }
+  table.toolcalls td.n { text-align: right; color: var(--ink-muted); font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
-  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; font-family: var(--mono); }
-  footer a { color: inherit; }
-  .ceiling { margin-top: 8px; }
+  footer {
+    margin-top: 52px; padding-top: 18px; border-top: 1px solid var(--gridline);
+    color: var(--ink-muted); font-size: 12.5px; line-height: 1.6;
+  }
+  footer a { color: var(--ink-2); }
+  footer strong { color: var(--ink-2); }
+  .credit { margin-top: 10px; font-family: var(--mono); }
 </style>
 </head>
 <body>
@@ -115,9 +179,9 @@
   </header>
 
   <section class="stats-grid">
-    <div class="stat-card highlight">
+    <div class="stat-card hero">
       <div class="n">{{.Stats.DeadTokenPct}}</div>
-      <div class="l">dead context — {{.Stats.DeadTokens}} tokens across {{.Stats.DeadTokenBlocks}} tool result(s) never referenced again</div>
+      <div class="l">dead context — {{.Stats.DeadTokens}} tokens across {{.Stats.DeadTokenBlocks}} tool result(s) that entered the window and were never mentioned again</div>
     </div>
     <div class="stat-card"><div class="n">{{.Stats.TurnCount}}</div><div class="l">turns</div></div>
     <div class="stat-card"><div class="n">{{.Stats.Duration}}</div><div class="l">{{.Stats.StartClock}} → {{.Stats.EndClock}}</div></div>
@@ -141,27 +205,27 @@
         <span class="clock">{{.Clock}}</span>
         <span class="delta">{{.DeltaLabel}}</span>
         <div class="turn-bar">
-          {{range .Blocks}}<span class="block{{if .Dead}} dead{{end}}" style="width:{{printf "%.3f" .WidthPct}}%;background:{{.Color}};" title="{{.Title}}"></span>{{end}}
+          {{range .Blocks}}<span class="block slot-{{.Slot}}{{if .Dead}} dead{{end}}" style="width:{{printf "%.3f" .WidthPct}}%;" title="{{.Title}}" tabindex="0"></span>{{end}}
         </div>
       </div>
       {{end}}
     </div>
     <div class="legend">
-      {{range .Legend}}<span><span class="dot" style="background:{{.Color}};"></span>{{.Label}}</span>{{end}}
-      <span><span class="dot" style="background:repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 4px);"></span>hatched = flagged dead</span>
+      {{range .Legend}}<span class="item"><span class="dot slot-{{.Slot}}"></span>{{.Label}}</span>{{end}}
+      <span class="item"><span class="dot" style="background-image:repeating-linear-gradient(45deg,var(--slot-dead) 0 2px,transparent 2px 4px);"></span>flagged dead</span>
     </div>
   </div>
 
   <h2>Tool calls</h2>
   <div class="panel">
     <table class="toolcalls">
-      {{range .ToolCalls}}<tr><td><span class="dot" style="background:{{.Color}};"></span>{{.Name}}</td><td class="n">{{.Count}}</td></tr>{{end}}
+      {{range .ToolCalls}}<tr><td class="name"><span class="dot slot-{{.Slot}}"></span>{{.Name}}</td><td class="n">{{.Count}}</td></tr>{{end}}
     </table>
   </div>
 
   <footer>
-    <div><strong>Ceiling:</strong> token counts under 1,000 tokens are estimated from character length (≈4 chars/token) and scaled to match what Anthropic actually billed for that turn — they are attribution, not an exact tokenizer. "Dead" means no later assistant turn contained any of the block's distinctive words; a block can matter without being quoted back, so treat the dead-token number as a lead to investigate, not a verdict.</div>
-    <div class="ceiling">generated by <a href="https://github.com/Gabriel-Gerhardt/ctxray">ctxray</a></div>
+    <div><strong>Ceiling:</strong> token counts under ~1,000 are estimated from character length (≈4 chars/token) and scaled to match what Anthropic actually billed that turn — attribution, not an exact tokenizer. "Dead" means none of a block's distinctive words showed up in the assistant's reply that turn or any later one; a block can matter without being quoted back, so read the percentage as a lead to check on specific turns, not a verdict. Tooltips are hover-only — there's no table view yet, so exact per-block numbers live in the title attribute, not on the page.</div>
+    <div class="credit">generated by <a href="https://github.com/Gabriel-Gerhardt/ctxray">ctxray</a></div>
   </footer>
 </main>
 </body>
