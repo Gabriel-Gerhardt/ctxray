@@ -65,7 +65,7 @@ Claude Code writes one JSON object per line to `~/.claude/projects/<project>/<se
 
 The report opens on the total dead-token count, lists the five biggest dead blocks, then draws one bar per source — Bash, Read, Grep, your own messages, the system prompt — showing what each put into the window across the whole session, with the never-referenced share hatched inside its own bar.
 
-## Ceiling
+## What the number isn't
 
 "Dead" is a heuristic, not a proof. A block gets flagged when none of its distinctive words show up in the assistant's reply that turn or any later one — so a `Read` that quietly confirmed a hunch, or a `Grep` with zero matches that ruled something out, gets hatched like waste. Treat the percentage as a lead worth chasing, not a verdict.
 
