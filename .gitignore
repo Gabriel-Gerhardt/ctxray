@@ -20,6 +20,8 @@ venv/
 # Go
 bin/
 pkg/
+/ctxray
+ctxray-report.html
 
 # Javascript
 node_modules/

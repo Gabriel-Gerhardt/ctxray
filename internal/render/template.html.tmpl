@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ctxray — {{.SessionID}}</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f8fafc;
+    --panel: #ffffff;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --muted: #64748b;
+    --accent: #f43f5e;
+    --accent-bg: #fff1f2;
+    --mono: ui-monospace, SFMono-Regular, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1120;
+      --panel: #111827;
+      --border: #1f2937;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #fb7185;
+      --accent-bg: #2a1116;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 20px 64px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.4;
+  }
+  main { max-width: 1100px; margin: 0 auto; }
+  header { margin-bottom: 28px; }
+  header h1 { font-size: 22px; margin: 0 0 4px; font-family: var(--mono); }
+  header .sub { color: var(--muted); font-size: 13px; font-family: var(--mono); }
+
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 36px 0 12px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+  }
+  .stat-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .stat-card .n { font-family: var(--mono); font-size: 22px; font-weight: 600; }
+  .stat-card .l { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .stat-card.highlight {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+    grid-column: span 2;
+  }
+  .stat-card.highlight .n { color: var(--accent); font-size: 30px; }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .timeline svg { width: 100%; height: 140px; display: block; }
+  .ctxray-timeline-area { fill: var(--accent); fill-opacity: .12; }
+  .ctxray-timeline-line { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 14px 0 0; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+  .legend .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 5px; vertical-align: middle; }
+
+  .flame-rows { display: flex; flex-direction: column; gap: 3px; margin-top: 4px; }
+  .turn-row { display: grid; grid-template-columns: 46px 68px 64px 1fr; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; }
+  .turn-row .idx { color: var(--muted); text-align: right; }
+  .turn-row .clock { color: var(--muted); }
+  .turn-row .delta { color: var(--muted); text-align: right; }
+  .turn-bar { display: flex; height: 18px; border-radius: 3px; overflow: hidden; background: var(--border); }
+  .block { position: relative; height: 100%; min-width: 1px; }
+  /* A dead block's own background comes from an inline style (its
+     source color), so the stripe pattern lives on a separate ::after
+     layer instead of the class's background-image — the shorthand
+     "background" in the inline style would otherwise reset it to none. */
+  .block.dead::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.35) 0 3px, rgba(255,255,255,.4) 3px 6px);
+    pointer-events: none;
+  }
+
+  table.toolcalls { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 13px; }
+  table.toolcalls td { padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  table.toolcalls td.n { text-align: right; color: var(--muted); }
+  table.toolcalls .dot { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 8px; }
+
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; font-family: var(--mono); }
+  footer a { color: inherit; }
+  .ceiling { margin-top: 8px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>ctxray</h1>
+    <div class="sub">session {{.SessionID}} · {{.Models}} · generated {{.GeneratedAt}}</div>
+  </header>
+
+  <section class="stats-grid">
+    <div class="stat-card highlight">
+      <div class="n">{{.Stats.DeadTokenPct}}</div>
+      <div class="l">dead context — {{.Stats.DeadTokens}} tokens across {{.Stats.DeadTokenBlocks}} tool result(s) never referenced again</div>
+    </div>
+    <div class="stat-card"><div class="n">{{.Stats.TurnCount}}</div><div class="l">turns</div></div>
+    <div class="stat-card"><div class="n">{{.Stats.Duration}}</div><div class="l">{{.Stats.StartClock}} → {{.Stats.EndClock}}</div></div>
+    <div class="stat-card"><div class="n">{{.Stats.PeakContextTokens}}</div><div class="l">peak context window</div></div>
+    <div class="stat-card"><div class="n">{{.Stats.FinalContextTokens}}</div><div class="l">final context window</div></div>
+    <div class="stat-card"><div class="n">{{.Stats.TotalContextEntered}}</div><div class="l">total tokens entered over session</div></div>
+    <div class="stat-card"><div class="n">{{.Stats.TotalOutputTokens}}</div><div class="l">output tokens ({{.Stats.TotalThinkingTokens}} thinking)</div></div>
+  </section>
+
+  <h2>Context window over the session</h2>
+  <div class="panel timeline">
+    <svg viewBox="0 0 1000 160" preserveAspectRatio="none">{{.TimelineSVG}}</svg>
+  </div>
+
+  <h2>Where the tokens came from, turn by turn</h2>
+  <div class="panel">
+    <div class="flame-rows">
+      {{range .Turns}}
+      <div class="turn-row">
+        <span class="idx">#{{.Index}}</span>
+        <span class="clock">{{.Clock}}</span>
+        <span class="delta">{{.DeltaLabel}}</span>
+        <div class="turn-bar">
+          {{range .Blocks}}<span class="block{{if .Dead}} dead{{end}}" style="width:{{printf "%.3f" .WidthPct}}%;background:{{.Color}};" title="{{.Title}}"></span>{{end}}
+        </div>
+      </div>
+      {{end}}
+    </div>
+    <div class="legend">
+      {{range .Legend}}<span><span class="dot" style="background:{{.Color}};"></span>{{.Label}}</span>{{end}}
+      <span><span class="dot" style="background:repeating-linear-gradient(45deg,#000 0 2px,#fff 2px 4px);"></span>hatched = flagged dead</span>
+    </div>
+  </div>
+
+  <h2>Tool calls</h2>
+  <div class="panel">
+    <table class="toolcalls">
+      {{range .ToolCalls}}<tr><td><span class="dot" style="background:{{.Color}};"></span>{{.Name}}</td><td class="n">{{.Count}}</td></tr>{{end}}
+    </table>
+  </div>
+
+  <footer>
+    <div><strong>Ceiling:</strong> token counts under 1,000 tokens are estimated from character length (≈4 chars/token) and scaled to match what Anthropic actually billed for that turn — they are attribution, not an exact tokenizer. "Dead" means no later assistant turn contained any of the block's distinctive words; a block can matter without being quoted back, so treat the dead-token number as a lead to investigate, not a verdict.</div>
+    <div class="ceiling">generated by <a href="https://github.com/Gabriel-Gerhardt/ctxray">ctxray</a></div>
+  </footer>
+</main>
+</body>
+</html>
