@@ -60,11 +60,23 @@ func anyContains(haystack string, needles []string) bool {
 // stopWords are long-but-common words that would otherwise look
 // "distinctive" and generate false negatives (a block wrongly counted as
 // referenced just because the model happened to write "however" later).
+// Past the everyday-English set, this also covers the generic vocabulary
+// of code itself — "service", "handler", "config" — words long enough to
+// clear the length floor but common enough in any codebase to turn up in
+// an unrelated later sentence by coincidence rather than because anyone
+// referenced this specific block.
 var stopWords = map[string]bool{
 	"because": true, "function": true, "package": true, "return": true,
 	"should": true, "example": true, "default": true, "however": true,
 	"another": true, "current": true, "already": true, "correctly": true,
 	"following": true, "several": true, "without": true, "between": true,
+
+	"service": true, "handler": true, "handle": true, "config": true,
+	"client": true, "server": true, "request": true, "response": true,
+	"context": true, "worker": true, "method": true, "result": true,
+	"error": true, "errors": true, "string": true, "struct": true,
+	"import": true, "module": true, "object": true, "process": true,
+	"system": true, "public": true, "private": true, "static": true,
 }
 
 // salientTokens pulls the distinctive words out of a block of text — long
