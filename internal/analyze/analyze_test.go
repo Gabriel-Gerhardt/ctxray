@@ -3,17 +3,17 @@ package analyze
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Gabriel-Gerhardt/ctxray/internal/transcript"
 )
 
 // TestBuild_SampleTranscript is a regression test against the shipped demo
-// transcript: a 17-turn, ~18-minute session hand-crafted so that specific
-// tool results are referenced later (main.go's computeChecksumForge,
-// config.go's port default, the focused TestConfigDefaultPort run, the
-// TODO grep, the git diff stat) and specific others are not (a directory
-// listing, a full test wall, git log, an unrelated file read, a broad
-// grep, go vet, a go.sum dump, go build, a noisy grep, a changelog read).
+// transcript: a 30-turn, ~1h50m webhook-debugging session built so that
+// specific tool results are referenced later (the source files the fix
+// touches, the failing test log, the final diff) and specific others are
+// not (a build-cache listing, two CI log dumps, a dependency tree, the
+// green full-suite run, a coverage profile, two vendor greps).
 // It pins both the aggregate dead-block count and each named block's
 // individual verdict, so a change to the attribution or dead-block
 // heuristic that silently flips one of them fails loudly here instead of
@@ -29,37 +29,39 @@ func TestBuild_SampleTranscript(t *testing.T) {
 	if report.SessionID != "test-session" {
 		t.Errorf("SessionID = %q, want %q", report.SessionID, "test-session")
 	}
-	if got, want := report.Stats.TurnCount, 17; got != want {
+	if got, want := report.Stats.TurnCount, 30; got != want {
 		t.Errorf("TurnCount = %d, want %d", got, want)
 	}
-	if got, want := report.Stats.DeadTokenBlocks, 10; got != want {
+	if got, want := report.Stats.DeadTokenBlocks, 11; got != want {
 		t.Errorf("DeadTokenBlocks = %d, want %d", got, want)
 	}
-	if report.Stats.DeadTokenPct < 0.5 {
-		t.Errorf("DeadTokenPct = %.3f, want a dramatically high fraction (this transcript is mostly dead weight on purpose)", report.Stats.DeadTokenPct)
+	// The demo session is deliberately mixed, not a strawman: roughly half
+	// its context earns its place. Pinning a band rather than a floor keeps
+	// a heuristic change that flips the balance either way visible here.
+	if pct := report.Stats.DeadTokenPct; pct < 0.4 || pct > 0.6 {
+		t.Errorf("DeadTokenPct = %.3f, want roughly half (0.4–0.6) — the demo transcript is a realistic mix, not all dead weight", pct)
 	}
-	if report.Stats.DeadTokens < 10_000 {
+	if report.Stats.DeadTokens < 50_000 {
 		t.Errorf("DeadTokens = %d, want a five-figure count (the whole point of this transcript is a large absolute number)", report.Stats.DeadTokens)
 	}
-	if report.Stats.PeakContextTokens < 10_000 {
-		t.Errorf("PeakContextTokens = %d, want a realistic five-figure session size", report.Stats.PeakContextTokens)
+	if report.Stats.PeakContextTokens < 100_000 {
+		t.Errorf("PeakContextTokens = %d, want a realistic six-figure session size", report.Stats.PeakContextTokens)
+	}
+	if d := report.Stats.Duration; d < time.Hour {
+		t.Errorf("Duration = %s, want a multi-hour session", d)
 	}
 
 	wantDead := map[string]bool{
-		"112":                                          true,  // find/ls -laR dump — never mentioned again
-		"=== RUN   TestWombatService_000":              true,  // full test wall — only the focused rerun is mentioned
-		"chore: touch up wombat_service":               true,  // git log
-		"package service":                              true,  // unrelated file read, never discussed
-		"func HandleWombatService000":                  true,  // broad grep across the repo
-		"# example-repo/src/wombat_service000":         true,  // go vet output
-		"github.com/example/wombat-service":            true,  // go.sum dump
-		"compiling example-repo/src/wombat_service000": true,  // go build output
-		"reporting metrics on the import path":         true,  // noisy grep
-		"## v0.40.0":                                   true,  // changelog read
-		"package main":                                 false, // referenced via computeChecksumForge
-		"package config":                               false, // referenced via the port-default fix
-		"src/wombat_service.go:12:// TODO":             false, // referenced via "retry backoff"
-		"=== RUN   TestConfigDefaultPort":              false, // referenced by name in the final reply
+		".turbo-cache:":            true,  // build-cache listing — never mentioned again
+		"[runner-":                 true,  // two CI log dumps, both abandoned
+		"acme-payments@4.18.2":     true,  // dependency tree
+		"ok  \tacme-payments/":     true,  // the green full-suite run nobody reads twice
+		"mode: atomic":             true,  // coverage profile over the vendor tree
+		"Deprecated: Do not use":   true,  // two vendor greps
+		"→ Read: package webhook":  false, // the source files the fix actually touches
+		"→ Read: package queue":    false, // consumer.go, read to confirm the dead-letter path
+		"→ Bash: === RUN   TestWe": false, // the failing test log, quoted back in the diagnosis
+		"→ Bash: package webhook":  false, // the final git diff
 	}
 
 	matched := map[string]bool{}
