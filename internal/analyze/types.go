@@ -10,7 +10,6 @@ type Report struct {
 	SessionID string
 	Models    []string
 	Turns     []Turn
-	Timeline  []TimelinePoint
 	Stats     Stats
 	Warnings  []string
 }
@@ -34,14 +33,6 @@ type Stats struct {
 	DeadTokens          int
 	DeadTokenBlocks     int
 	DeadTokenPct        float64 // DeadTokens / TotalContextEntered, 0–1
-}
-
-// TimelinePoint is one sample of "how big was the window" over the
-// session.
-type TimelinePoint struct {
-	TurnIndex     int
-	Timestamp     time.Time
-	ContextTokens int
 }
 
 // Turn is one assistant reply: what entered the context window to produce
