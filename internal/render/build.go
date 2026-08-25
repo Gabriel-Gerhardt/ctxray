@@ -16,6 +16,7 @@ func buildViewModel(report analyze.Report) ViewModel {
 		GeneratedAt: time.Now().Format("2006-01-02 15:04:05"),
 		Models:      joinModels(report.Models),
 		Stats:       buildStatsVM(report.Stats),
+		TopDead:     buildTopDead(report.Turns),
 		Turns:       buildTurnVMs(report.Turns),
 		TimelineSVG: template.HTML(buildTimelineSVG(report.Timeline)), //nolint:gosec // server-generated SVG, no user input reaches raw markup
 		Legend:      buildLegend(report.Turns),
@@ -36,8 +37,6 @@ func buildStatsVM(s analyze.Stats) StatsVM {
 		Duration:            formatDuration(s.Duration),
 		StartClock:          formatClock(s.StartTime),
 		EndClock:            formatClock(s.EndTime),
-		TotalContextEntered: formatTokens(s.TotalContextEntered),
-		FinalContextTokens:  formatTokens(s.FinalContextTokens),
 		PeakContextTokens:   formatTokens(s.PeakContextTokens),
 		TotalOutputTokens:   formatTokens(s.TotalOutputTokens),
 		TotalThinkingTokens: formatTokens(s.TotalThinkingTokens),
@@ -46,6 +45,40 @@ func buildStatsVM(s analyze.Stats) StatsVM {
 		DeadTokenPct:        formatPct(s.DeadTokenPct),
 		DeadTokenBlocks:     s.DeadTokenBlocks,
 	}
+}
+
+// topDeadCount caps the plain-text ranking — enough to answer "what's the
+// worst of it" at a glance, not a second copy of the whole flamegraph.
+const topDeadCount = 5
+
+// buildTopDead lists the single biggest dead blocks across the whole
+// session, sorted by token count. It exists because a sorted list needs
+// no legend and no learning curve — it's the fastest path to "what
+// should I go look at first", ahead of the chart that shows everything.
+func buildTopDead(turns []analyze.Turn) []TopDeadVM {
+	var dead []analyze.Block
+	for _, t := range turns {
+		for _, b := range t.NewBlocks {
+			if b.Dead {
+				dead = append(dead, b)
+			}
+		}
+	}
+	sort.Slice(dead, func(i, j int) bool { return dead[i].Tokens > dead[j].Tokens })
+	if len(dead) > topDeadCount {
+		dead = dead[:topDeadCount]
+	}
+
+	out := make([]TopDeadVM, len(dead))
+	for i, b := range dead {
+		out[i] = TopDeadVM{
+			Rank:   i + 1,
+			Label:  b.Label,
+			Tokens: formatTokens(b.Tokens),
+			Slot:   string(slotFor(b.Source)),
+		}
+	}
+	return out
 }
 
 // minRowWidthPct keeps a nearly-empty turn visible as a sliver instead of
@@ -76,8 +109,7 @@ func buildTurnVMs(turns []analyze.Turn) []TurnVM {
 			rowWidth = minRowWidthPct
 		}
 		out = append(out, TurnVM{
-			Index:       t.Index,
-			Clock:       formatClock(t.Timestamp),
+			RowTitle:    fmt.Sprintf("turn #%d · %s", t.Index, formatClock(t.Timestamp)),
 			DeltaLabel:  "+" + formatTokens(t.ContextDelta),
 			RowWidthPct: rowWidth,
 			Blocks:      buildBlockVMs(t.NewBlocks, t.ContextDelta),

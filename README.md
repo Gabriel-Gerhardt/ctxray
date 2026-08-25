@@ -57,7 +57,7 @@ Claude Code writes one JSON object per line to `~/.claude/projects/<project>/<se
 2. **What the assistant produced in exchange.** Output tokens split across the reply text, extended thinking, and any tool calls.
 3. **What never got used again.** Every tool result over a size threshold is checked against every assistant turn from that point on — its own reply included. If none of its distinctive content shows up anywhere later, it's flagged dead.
 
-The result renders as one flamegraph-style HTML report: one row per turn, one segment per content source, hatched wherever a block was flagged dead. No server, no build step, no JavaScript — inline CSS and a couple of embedded SVGs, so it opens the same from `file://` as it does hosted anywhere.
+The report leads with a plain sorted list — the five biggest dead blocks, no chart-reading required — then the flamegraph underneath for the turn-by-turn detail: one row per turn that actually added tokens, bar length proportional to how much, hatched wherever a block was flagged dead. No server, no build step, no JavaScript — inline CSS and a couple of embedded SVGs, so it opens the same from `file://` as it does hosted anywhere.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
