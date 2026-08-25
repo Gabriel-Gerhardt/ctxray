@@ -85,6 +85,6 @@ ctxray [flags] <session.jsonl>
 ```
 
 ## Contact
-- LinkedIn: https://www.linkedin.com/in/gabriel-gerhardt-0a8b852b9/
+- LinkedIn: https://www.linkedin.com/in/gabriel-gerhardt27/
 - Email: gabrielgerhardt27@gmail.com
 - GitHub: https://github.com/Gabriel-Gerhardt
