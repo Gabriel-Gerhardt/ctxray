@@ -28,10 +28,6 @@ Nothing ever leaves a context window on its own, and every request re-sends the 
 
 Point it at a session log and it hands back one HTML file — how much each tool put into the context window, and how much of that was never referenced again. One Go binary. No telemetry, no API key, nothing to sign up for.
 
-## Supported formats
-
-Claude Code today (`~/.claude/projects/*/*.jsonl`). Only `internal/transcript` knows the format — everything downstream works on messages, tool results and per-turn usage. If your agent records those, it's a parser away.
-
 ## Quickstart
 
 ```bash
@@ -39,7 +35,7 @@ go install github.com/Gabriel-Gerhardt/ctxray@latest
 ctxray ~/.claude/projects/*/*.jsonl -open
 ```
 
-That's it — one binary, zero dependencies, and the report opens in your browser.
+That's it — one binary, zero dependencies, and the report opens in your browser. Reads Claude Code transcripts today.
 
 No Go toolchain? Grab a prebuilt binary for your platform from [the latest release](https://github.com/Gabriel-Gerhardt/ctxray/releases/latest).
 
@@ -67,7 +63,7 @@ A session log is one JSON object per line: every message, every tool call, every
 2. **What the assistant produced in exchange.** Output tokens split across the reply text, extended thinking, and any tool calls.
 3. **What never got used again.** Every tool result over a size threshold is checked against every assistant turn from that point on, its own reply included. If none of its distinctive content shows up anywhere later, it's flagged dead.
 
-The report opens on the total dead-token count, lists the five biggest dead blocks, then draws one bar per source — Bash, Read, Grep, your own messages, the system prompt — showing what each put into the window across the whole session, with the never-referenced share hatched inside its own bar.
+The report opens on the total dead-token count, lists the five biggest dead blocks, then draws one bar per source — Bash, Read, Grep, your own messages, the system prompt — with what each put into the window on one side and what it wasted on the other.
 
 ## Contact
 
