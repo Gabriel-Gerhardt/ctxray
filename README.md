@@ -69,14 +69,6 @@ A session log is one JSON object per line: every message, every tool call, every
 
 The report opens on the total dead-token count, lists the five biggest dead blocks, then draws one bar per source — Bash, Read, Grep, your own messages, the system prompt — showing what each put into the window across the whole session, with the never-referenced share hatched inside its own bar.
 
-## What the number isn't
-
-"Dead" is a heuristic, not a proof. A block gets flagged when the assistant never reproduces enough of its distinctive text afterward — roughly one long identifier's worth. So a `Read` that quietly confirmed a hunch, or a `Grep` with zero matches that ruled something out, gets hatched like waste. Treat the percentage as a lead worth chasing, not a verdict.
-
-Per-block counts are estimated from character length (~4 chars/token) and scaled to what the API actually billed that turn. Session totals are exact; the split between blocks inside a turn is attribution.
-
-The percentage is measured against tool output, not against the whole window. The system prompt and tool schemas enter the window as a billing delta with no text attached, so they can never be judged either way — counting them in the denominator would turn the number into a fact about how many tool schemas you have loaded rather than about wasted output.
-
 ## Contact
 
 - LinkedIn: https://www.linkedin.com/in/gabriel-gerhardt27/
