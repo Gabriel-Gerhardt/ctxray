@@ -1,11 +1,15 @@
-# ctxray
+<p align="center">
+  <img src="docs/brand.png" alt="ctxray" width="620">
+</p>
 
-**Flamegraph for your agent's context window.**
+<p align="center"><strong>Flamegraph for your agent's context window.</strong></p>
 
-[![ci](https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml)
-[![golangci-lint](https://img.shields.io/badge/lint-golangci--lint-informational?logo=go&logoColor=white)](https://golangci-lint.run/)
-[![go version](https://img.shields.io/badge/go-1.24%2B-00ADD8?logo=go&logoColor=white)](go.mod)
-[![license](https://img.shields.io/github/license/Gabriel-Gerhardt/ctxray)](LICENSE)
+<p align="center">
+  <a href="https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml"><img src="https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+  <a href="https://golangci-lint.run/"><img src="https://img.shields.io/badge/lint-golangci--lint-informational?logo=go&logoColor=white" alt="golangci-lint"></a>
+  <a href="go.mod"><img src="https://img.shields.io/badge/go-1.24%2B-00ADD8?logo=go&logoColor=white" alt="go version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Gabriel-Gerhardt/ctxray" alt="license"></a>
+</p>
 
 Your last agent run burned 160k tokens. Which ones actually did anything?
 
