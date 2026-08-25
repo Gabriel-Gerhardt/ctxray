@@ -73,6 +73,7 @@
     font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
     color: var(--ink-muted); font-weight: 600; margin: 40px 0 12px;
   }
+  .caption { font-size: 13px; color: var(--ink-muted); margin: -6px 0 12px; }
 
   .panel {
     background: var(--surface);
@@ -142,7 +143,13 @@
   .turn-row .idx, .turn-row .clock, .turn-row .delta { color: var(--ink-muted); }
   .turn-row .idx { text-align: right; }
   .turn-row .delta { text-align: right; }
-  .turn-bar { display: flex; height: 20px; border-radius: 4px; overflow: hidden; background: var(--gridline); }
+  /* The track is the full-width lane every row shares, so rows stay
+     comparable; the bar inside it is sized to this turn's actual share
+     of the session's biggest turn — length carries magnitude the way a
+     real flamegraph does, not just a text label next to a full-width
+     bar every time. */
+  .turn-track { height: 20px; border-radius: 4px; overflow: hidden; background: var(--gridline); }
+  .turn-bar { display: flex; height: 100%; }
 
   .block { position: relative; height: 100%; min-width: 1px; transition: filter .1s ease; }
   .block:not(:first-child) { box-shadow: inset 1.5px 0 0 var(--surface); }
@@ -214,6 +221,7 @@
   </div>
 
   <h2>Where the tokens came from, turn by turn</h2>
+  <p class="caption">Bar length is how much this turn added, relative to the session's biggest turn. Color is where it came from. Red hatch is flagged dead. Showing {{len .Turns}} of {{.Stats.TurnCount}} turns — the rest added nothing new to the window.</p>
   <div class="panel">
     <div class="flame-rows">
       {{range .Turns}}
@@ -221,8 +229,10 @@
         <span class="idx">#{{.Index}}</span>
         <span class="clock">{{.Clock}}</span>
         <span class="delta">{{.DeltaLabel}}</span>
-        <div class="turn-bar">
-          {{range .Blocks}}<span class="block slot-{{.Slot}}{{if .Dead}} dead{{end}}" style="width:{{printf "%.3f" .WidthPct}}%;" title="{{.Title}}" tabindex="0"></span>{{end}}
+        <div class="turn-track">
+          <div class="turn-bar" style="width:{{printf "%.3f" .RowWidthPct}}%;">
+            {{range .Blocks}}<span class="block slot-{{.Slot}}{{if .Dead}} dead{{end}}" style="width:{{printf "%.3f" .WidthPct}}%;" title="{{.Title}}" tabindex="0"></span>{{end}}
+          </div>
         </div>
       </div>
       {{end}}
