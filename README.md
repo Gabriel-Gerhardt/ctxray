@@ -13,7 +13,7 @@
 
 Your last agent run burned 160k tokens. Which ones actually did anything?
 
-Point `ctxray` at a Claude Code session transcript and it finds the tool output that entered the context window and was never referenced again — then shows you which tool put it there.
+Point `ctxray` at a coding-agent session transcript and it finds the tool output that entered the context window and was never referenced again — then shows you which tool put it there.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
@@ -24,11 +24,15 @@ Point `ctxray` at a Claude Code session transcript and it finds the tool output 
 
 A long agent session is expensive in a way the totals hide. Nothing ever leaves the context window on its own, and every request re-sends the whole thing — so a 20k-token directory listing that lands on turn 3 isn't paid for once. It's re-sent with every turn after it, billed again each time (at the cheaper cache-read rate, but billed), and it goes on taking up room until the session compacts and starts throwing things away. The bigger cost is usually that: the junk crowds out what the model actually needed.
 
-Plenty of things will tell you what is *in* your context window. Claude Code's own `/context` breaks down the system prompt, your MCP servers and your memory files, and does it more precisely than anything reading the transcript can. What none of them tell you is which of it the model never looked at again.
+Plenty of things will tell you what is *in* your context window — Claude Code ships a `/context` command that breaks down the system prompt, MCP servers and memory files, more precisely than anything reading a transcript could. What none of them tell you is which of it the model never looked at again.
 
 That is a different question, and it needs the transcript rather than a snapshot: every tool result the session produced, checked against everything the model said afterward.
 
-`ctxray` reads the session log Claude Code already writes to your disk and turns it into a single self-contained HTML report: how much each tool put into the window, and how much of that never came up again. One Go binary, no telemetry, no API key, no dashboard to sign up for, no dependencies.
+`ctxray` reads the session log your agent already writes to disk and turns it into a single self-contained HTML report: how much each tool put into the window, and how much of that never came up again. One Go binary, no telemetry, no API key, no dashboard to sign up for, no dependencies.
+
+## Supported formats
+
+Today `ctxray` reads Claude Code transcripts (`~/.claude/projects/*/*.jsonl`). That is the only format-specific part of it: `internal/transcript` turns a session log into messages, tool results and per-turn token usage, and nothing downstream knows or cares where those came from. Another agent is a parser away — if yours records per-turn usage, that is the piece to write.
 
 ## Quickstart
 
@@ -57,7 +61,7 @@ Usage: ctxray [flags] <session.jsonl>
 
 ## How it works
 
-Claude Code writes one JSON object per line to `~/.claude/projects/<project>/<session>.jsonl` as a session runs — every message, every tool call, every tool result, and the exact token usage Anthropic billed for each assistant turn.
+A session log is one JSON object per line: every message, every tool call, every tool result, and the exact token usage the API billed for each assistant turn.
 
 `ctxray` reads that file once and reconstructs three things:
 
@@ -71,7 +75,7 @@ The report opens on the total dead-token count, lists the five biggest dead bloc
 
 "Dead" is a heuristic, not a proof. A block gets flagged when the assistant never reproduces enough of its distinctive text afterward — roughly one long identifier's worth. So a `Read` that quietly confirmed a hunch, or a `Grep` with zero matches that ruled something out, gets hatched like waste. Treat the percentage as a lead worth chasing, not a verdict.
 
-Per-block counts are estimated from character length (~4 chars/token) and scaled to what Anthropic actually billed that turn. Session totals are exact; the split between blocks inside a turn is attribution.
+Per-block counts are estimated from character length (~4 chars/token) and scaled to what the API actually billed that turn. Session totals are exact; the split between blocks inside a turn is attribution.
 
 The percentage is measured against tool output, not against the whole window. The system prompt and tool schemas enter the window as a billing delta with no text attached, so they can never be judged either way — counting them in the denominator would turn the number into a fact about how many tool schemas you have loaded rather than about wasted output.
 
