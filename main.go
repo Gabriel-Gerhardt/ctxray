@@ -124,7 +124,7 @@ func openBrowser(path string) error {
 }
 
 func printUsage() {
-	fmt.Fprint(os.Stderr, `ctxray — flamegraph for your agent's context window
+	fmt.Fprint(os.Stderr, `ctxray — dead-code analysis for your agent's context window
 
 Usage:
   ctxray [flags] <session.jsonl>
@@ -136,8 +136,8 @@ Flags:
 Example:
   ctxray ~/.claude/projects/*/*.jsonl -open
 
-ctxray reads a Claude Code session transcript and shows, turn by turn,
-where every token in the context window came from — and how much of it
-was never mentioned again.
+ctxray reads a Claude Code session transcript and finds the tool output
+that entered the context window and was never referenced again — and
+which tool put it there.
 `)
 }

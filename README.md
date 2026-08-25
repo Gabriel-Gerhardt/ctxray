@@ -2,7 +2,7 @@
   <img src="docs/brand.png" alt="ctxray" width="620">
 </p>
 
-<p align="center"><strong>Flamegraph for your agent's context window.</strong></p>
+<p align="center"><strong>Dead-code analysis for your agent's context window.</strong></p>
 
 <p align="center">
   <a href="https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml"><img src="https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
@@ -13,7 +13,7 @@
 
 Your last agent run burned 160k tokens. Which ones actually did anything?
 
-Point `ctxray` at a Claude Code session transcript and it answers that in one self-contained HTML file: where every token in the context window came from, and how much of it was never mentioned again.
+Point `ctxray` at a Claude Code session transcript and it finds the tool output that entered the context window and was never referenced again — then shows you which tool put it there.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
@@ -24,9 +24,11 @@ Point `ctxray` at a Claude Code session transcript and it answers that in one se
 
 A long agent session is expensive in a way the totals hide. Nothing ever leaves the context window on its own, and every request re-sends the whole thing — so a 20k-token directory listing that lands on turn 3 isn't paid for once. It's re-sent with every turn after it, billed again each time (at the cheaper cache-read rate, but billed), and it goes on taking up room until the session compacts and starts throwing things away. The bigger cost is usually that: the junk crowds out what the model actually needed.
 
-Every agent CLI tells you *how many* tokens you spent. None of them tell you *on what*. The data to answer it is already sitting on your disk — Claude Code logs every message, tool call and tool result as the session runs, along with the exact usage Anthropic billed for each turn.
+Plenty of things will tell you what is *in* your context window. Claude Code's own `/context` breaks down the system prompt, your MCP servers and your memory files, and does it more precisely than anything reading the transcript can. What none of them tell you is which of it the model never looked at again.
 
-`ctxray` reads that file and turns it into a single self-contained HTML report: what entered the context window, which tool put it there, and how much of it never came up again. One Go binary, no telemetry, no API key, no dashboard to sign up for, no dependencies.
+That is a different question, and it needs the transcript rather than a snapshot: every tool result the session produced, checked against everything the model said afterward.
+
+`ctxray` reads the session log Claude Code already writes to your disk and turns it into a single self-contained HTML report: how much each tool put into the window, and how much of that never came up again. One Go binary, no telemetry, no API key, no dashboard to sign up for, no dependencies.
 
 ## Quickstart
 
