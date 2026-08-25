@@ -30,9 +30,26 @@ type Stats struct {
 	FinalContextTokens  int // window size at the last turn
 	PeakContextTokens   int
 	ToolCallCounts      map[string]int
-	DeadTokens          int
-	DeadTokenBlocks     int
-	DeadTokenPct        float64 // DeadTokens / TotalContextEntered, 0–1
+
+	// ToolTokens is everything that entered from a tool result — the only
+	// content the dead-block pass can actually judge. Overhead is inferred
+	// from a billing delta rather than read from the transcript, so it has
+	// no text to check and can never be flagged either way; counting it in
+	// the denominator would make the percentage a fact about how large the
+	// system prompt and tool schemas are rather than about wasted output.
+	ToolTokens int
+
+	// OverheadBaseline is the unattributable growth on the first turn: the
+	// system prompt and tool schemas entering the window once. Unavoidable.
+	// OverheadGrowth is the same kind of unattributable growth on every
+	// later turn — schemas re-cached, reminders injected — which is not
+	// unavoidable, and is worth separating for exactly that reason.
+	OverheadBaseline int
+	OverheadGrowth   int
+
+	DeadTokens      int
+	DeadTokenBlocks int
+	DeadTokenPct    float64 // DeadTokens / ToolTokens, 0–1
 }
 
 // Turn is one assistant reply: what entered the context window to produce
@@ -55,7 +72,7 @@ type Turn struct {
 // Block is one attributed slice of tokens: a tool result, a stretch of
 // user text, an assistant reply, a thinking block, or a tool call.
 type Block struct {
-	Source   string // "user" | "tool:<name>" | "context:overhead" | "assistant:text" | "assistant:thinking" | "assistant:tool_use:<name>"
+	Source   string // "user" | "tool:<name>" | "context:overhead" | "context:overhead-growth" | "assistant:text" | "assistant:thinking" | "assistant:tool_use:<name>"
 	Label    string
 	Tokens   int
 	RawChars int

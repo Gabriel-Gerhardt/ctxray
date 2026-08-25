@@ -19,12 +19,12 @@ const charsPerToken = 4.0
 // and every tool schema first enter the cache — the remainder goes to a
 // synthetic "context:overhead" block instead of being silently folded
 // into whichever block happened to be pending.
-func attributeDelta(pending []pendingBlock, delta int) (blocks []Block, texts []string) {
+func attributeDelta(pending []pendingBlock, delta int, firstTurn bool) (blocks []Block, texts []string) {
 	if delta <= 0 {
 		return nil, nil
 	}
 	if len(pending) == 0 {
-		return []Block{overheadBlock(delta)}, []string{""}
+		return []Block{overheadBlock(delta, firstTurn)}, []string{""}
 	}
 
 	estimates := make([]int, len(pending))
@@ -37,7 +37,7 @@ func attributeDelta(pending []pendingBlock, delta int) (blocks []Block, texts []
 		return splitEvenly(pending, delta)
 	}
 	if estSum <= delta {
-		return attributeWithOverhead(pending, estimates, delta, estSum)
+		return attributeWithOverhead(pending, estimates, delta, estSum, firstTurn)
 	}
 	return attributeScaledDown(pending, estimates, delta, estSum)
 }
@@ -45,7 +45,7 @@ func attributeDelta(pending []pendingBlock, delta int) (blocks []Block, texts []
 // attributeWithOverhead is the common case: the heuristic token estimate
 // for what we saw undershoots what was actually billed, so each block
 // keeps its own estimate and the gap becomes an overhead block.
-func attributeWithOverhead(pending []pendingBlock, estimates []int, delta, estSum int) (blocks []Block, texts []string) {
+func attributeWithOverhead(pending []pendingBlock, estimates []int, delta, estSum int, firstTurn bool) (blocks []Block, texts []string) {
 	blocks = make([]Block, 0, len(pending)+1)
 	texts = make([]string, 0, len(pending)+1)
 	for i, p := range pending {
@@ -53,7 +53,7 @@ func attributeWithOverhead(pending []pendingBlock, estimates []int, delta, estSu
 		texts = append(texts, p.text)
 	}
 	if remainder := delta - estSum; remainder > 0 {
-		blocks = append(blocks, overheadBlock(remainder))
+		blocks = append(blocks, overheadBlock(remainder, firstTurn))
 		texts = append(texts, "")
 	}
 	return blocks, texts
@@ -98,10 +98,23 @@ func distributeRemainder(blocks []Block, remainder int) {
 	}
 }
 
-func overheadBlock(tokens int) Block {
+// overheadBlock accounts for growth the transcript does not explain. On
+// the first turn that is the system prompt and tool schemas arriving once,
+// which no session can avoid. On any later turn it means something
+// re-entered the window — schemas re-cached after a server reconnects,
+// injected reminders — which a session very much can avoid, so the two are
+// not the same finding and do not share a bar.
+func overheadBlock(tokens int, firstTurn bool) Block {
+	if firstTurn {
+		return Block{
+			Source: "context:overhead",
+			Label:  "system prompt, tool schemas, cache bookkeeping",
+			Tokens: tokens,
+		}
+	}
 	return Block{
-		Source: "context:overhead",
-		Label:  "system prompt, tool schemas, cache bookkeeping",
+		Source: "context:overhead-growth",
+		Label:  "re-entered context: schemas re-cached, reminders injected",
 		Tokens: tokens,
 	}
 }

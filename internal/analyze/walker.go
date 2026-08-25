@@ -115,7 +115,7 @@ func (w *walker) handleAssistant(msg *transcript.Message, ts time.Time) {
 	}
 	w.lastContext = ctxTotal
 
-	newBlocks, newText := attributeDelta(w.pending, delta)
+	newBlocks, newText := attributeDelta(w.pending, delta, len(w.wip) == 0)
 	w.pending = nil
 
 	thinkingTokens := msg.Usage.OutputTokensDetails.ThinkingTokens

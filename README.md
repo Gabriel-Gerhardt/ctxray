@@ -71,6 +71,8 @@ The report opens on the total dead-token count, lists the five biggest dead bloc
 
 Per-block counts are estimated from character length (~4 chars/token) and scaled to what Anthropic actually billed that turn. Session totals are exact; the split between blocks inside a turn is attribution.
 
+The percentage is measured against tool output, not against the whole window. The system prompt and tool schemas enter the window as a billing delta with no text attached, so they can never be judged either way — counting them in the denominator would turn the number into a fact about how many tool schemas you have loaded rather than about wasted output.
+
 ## Contact
 
 - LinkedIn: https://www.linkedin.com/in/gabriel-gerhardt27/

@@ -26,7 +26,7 @@ func slotFor(source string) slot {
 	switch {
 	case source == "user":
 		return slotUser
-	case source == "context:overhead":
+	case source == "context:overhead", source == "context:overhead-growth":
 		return slotOverhead
 	case source == "tool:Bash":
 		return slotBash

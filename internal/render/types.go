@@ -35,6 +35,9 @@ type StatsVM struct {
 	DeadTokens          string
 	DeadTokensExact     string
 	DeadTokenPct        string
+	ToolTokens          string
+	OverheadGrowth      string
+	HasOverheadGrowth   bool
 	DeadTokenBlocks     int
 }
 

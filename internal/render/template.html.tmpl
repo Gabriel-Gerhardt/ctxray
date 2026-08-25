@@ -116,6 +116,9 @@
     font-weight: 700;
     white-space: nowrap;
   }
+  .stat-card.warn { border-color: var(--slot-grep); }
+  .stat-card.warn .n { color: var(--slot-grep); }
+
   @media (max-width: 720px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .src-row { grid-template-columns: 104px 48px 1fr; gap: 8px; font-size: 11px; }
@@ -214,14 +217,15 @@
     <div class="stat-card hero">
       <div class="hero-main">
         <div class="n">{{.Stats.DeadTokensExact}}</div>
-        <div class="l">dead tokens — burned across {{.Stats.DeadTokenBlocks}} tool result(s) that entered the context window and were never mentioned again</div>
+        <div class="l">dead tokens — burned across {{.Stats.DeadTokenBlocks}} tool result(s) that entered the context window and were never mentioned again, out of {{.Stats.ToolTokens}} that tool results put there</div>
       </div>
-      <div class="pct">{{.Stats.DeadTokenPct}} of everything entered</div>
+      <div class="pct">{{.Stats.DeadTokenPct}} of tool output</div>
     </div>
     <div class="stat-card"><div class="n">{{.Stats.TurnCount}}</div><div class="l">turns</div></div>
     <div class="stat-card"><div class="n">{{.Stats.Duration}}</div><div class="l">{{.Stats.StartClock}} → {{.Stats.EndClock}}</div></div>
     <div class="stat-card"><div class="n">{{.Stats.PeakContextTokens}}</div><div class="l">peak context window</div></div>
     <div class="stat-card"><div class="n">{{.Stats.TotalOutputTokens}}</div><div class="l">output tokens ({{.Stats.TotalThinkingTokens}} thinking)</div></div>
+    {{if .Stats.HasOverheadGrowth}}<div class="stat-card warn"><div class="n">{{.Stats.OverheadGrowth}}</div><div class="l">re-entered context after turn 1 — schemas re-cached, reminders injected</div></div>{{end}}
   </section>
 
   {{if .TopDead}}
@@ -234,7 +238,7 @@
   {{end}}
 
   <h2>Where the tokens came from</h2>
-  <p class="caption">One bar per source, totalled across the whole session. Bar length is how much of the context window it accounts for, relative to the biggest source. The red hatch is the share that was never referenced again.</p>
+  <p class="caption">One bar per source, totalled across the whole session. Bar length is how much of the context window it accounts for, relative to the biggest source. The red hatch is the share that was never referenced again — only tool results can be judged, so the system bars are never hatched.</p>
   <div class="panel">
     <div class="flame-rows">
       {{range .Sources}}

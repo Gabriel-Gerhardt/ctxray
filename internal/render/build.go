@@ -42,6 +42,9 @@ func buildStatsVM(s analyze.Stats) StatsVM {
 		DeadTokensExact:     formatExact(s.DeadTokens),
 		DeadTokenPct:        formatPct(s.DeadTokenPct),
 		DeadTokenBlocks:     s.DeadTokenBlocks,
+		ToolTokens:          formatTokens(s.ToolTokens),
+		OverheadGrowth:      formatTokens(s.OverheadGrowth),
+		HasOverheadGrowth:   s.OverheadGrowth > 0,
 	}
 }
 
@@ -163,7 +166,9 @@ func sourceLabel(source string) string {
 	case source == "user":
 		return "user"
 	case source == "context:overhead":
-		return "system + schemas"
+		return "system baseline"
+	case source == "context:overhead-growth":
+		return "system re-entered"
 	default:
 		if name, ok := strings.CutPrefix(source, "tool:"); ok {
 			return name
@@ -196,7 +201,7 @@ var legendOrder = []struct {
 	label string
 }{
 	{slotUser, "user"},
-	{slotOverhead, "system / tool schemas"},
+	{slotOverhead, "system: schemas + reminders (baseline and re-entered)"},
 	{slotBash, "Bash"},
 	{slotRead, "Read"},
 	{slotGrep, "Grep"},
