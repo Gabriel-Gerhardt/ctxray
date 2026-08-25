@@ -27,6 +27,7 @@ type StatsVM struct {
 	TotalOutputTokens   string
 	TotalThinkingTokens string
 	DeadTokens          string
+	DeadTokensExact     string
 	DeadTokenPct        string
 	DeadTokenBlocks     int
 }

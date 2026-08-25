@@ -3,18 +3,21 @@
 **Flamegraph for your agent's context window.**
 
 [![ci](https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabriel-Gerhardt/ctxray/actions/workflows/ci.yml)
-[![go report card](https://goreportcard.com/badge/github.com/Gabriel-Gerhardt/ctxray)](https://goreportcard.com/report/github.com/Gabriel-Gerhardt/ctxray)
+[![golangci-lint](https://img.shields.io/badge/lint-golangci--lint-informational?logo=go&logoColor=white)](https://golangci-lint.run/)
 [![go version](https://img.shields.io/badge/go-1.24%2B-00ADD8?logo=go&logoColor=white)](go.mod)
 [![license](https://img.shields.io/github/license/Gabriel-Gerhardt/ctxray)](LICENSE)
 
 Point it at a Claude Code session transcript. Get back one HTML file that shows, turn by turn, where every token in the context window came from — and how much of it was never mentioned again.
 
-![the hero number](docs/hero.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
+  <img src="docs/hero.png" alt="the hero number: 27,788 dead tokens, 98.3% of everything entered">
+</picture>
 
 ```
 $ ctxray my-session.jsonl
-ctxray: 15 turns · 4.3k tokens entered · peak window 4.3k
-ctxray: 89.6% dead context — 3.9k tokens across 8 tool result(s) never referenced again
+ctxray: 17 turns · 28.3k tokens entered · peak window 28.3k
+ctxray: 98.3% dead context — 27.8k tokens across 10 tool result(s) never referenced again
 ctxray: report written to ctxray-report.html
 ```
 
@@ -56,7 +59,10 @@ Claude Code writes one JSON object per line to `~/.claude/projects/<project>/<se
 
 The result renders as one flamegraph-style HTML report: one row per turn, one segment per content source, hatched wherever a block was flagged dead. No server, no build step, no JavaScript — inline CSS and a couple of embedded SVGs, so it opens the same from `file://` as it does hosted anywhere.
 
-![full report](docs/screenshot.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <img src="docs/screenshot.png" alt="full ctxray report: stat tiles, a context-window timeline, and the turn-by-turn flamegraph">
+</picture>
 
 Color is intentionally sparse — five fixed identities (user, Bash, Read, Grep, everything else) instead of a new hue per tool, so a session with twenty different MCP tools still reads as a handful of colors, not a rainbow. Anything not called out by name folds into "other" and gets named in the legend anyway.
 

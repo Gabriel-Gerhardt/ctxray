@@ -27,8 +27,9 @@
     --slot-grep:     #eda100;
     --slot-other:    #4a3aa7;
     --slot-overhead: #898781;
-    --slot-dead:     #d03b3b;
-    --slot-dead-bg:  #fbeceb;
+    --slot-dead:      #d03b3b;
+    --slot-dead-bg:   #fbeceb;
+    --slot-dead-chip: #f6d2d0;
 
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     --mono: ui-monospace, SFMono-Regular, "Cascadia Code", "JetBrains Mono", Consolas, monospace;
@@ -49,6 +50,7 @@
       --slot-grep:  #c98500;
       --slot-other: #9085e9;
       --slot-dead-bg: #2a1414;
+      --slot-dead-chip: #4a2020;
     }
   }
   * { box-sizing: border-box; }
@@ -94,14 +96,26 @@
     background: var(--slot-dead-bg);
     border-color: var(--slot-dead);
     grid-column: span 6;
-    padding: 22px 24px;
+    padding: 24px 26px;
     display: flex;
-    align-items: baseline;
-    gap: 18px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
     flex-wrap: wrap;
   }
-  .stat-card.hero .n { color: var(--slot-dead); font-size: 44px; font-weight: 700; line-height: 1; }
-  .stat-card.hero .l { color: var(--ink-2); font-size: 14px; max-width: 46ch; }
+  .stat-card.hero .hero-main { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+  .stat-card.hero .n { color: var(--slot-dead); font-size: 52px; font-weight: 700; line-height: 1; letter-spacing: -.01em; }
+  .stat-card.hero .l { color: var(--ink-2); font-size: 14.5px; max-width: 44ch; }
+  .stat-card.hero .pct {
+    flex: none;
+    background: var(--slot-dead-chip);
+    color: var(--slot-dead);
+    border-radius: 999px;
+    padding: 7px 14px;
+    font-size: 15px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
   @media (max-width: 720px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .stat-card { grid-column: span 1; }
@@ -180,8 +194,11 @@
 
   <section class="stats-grid">
     <div class="stat-card hero">
-      <div class="n">{{.Stats.DeadTokenPct}}</div>
-      <div class="l">dead context — {{.Stats.DeadTokens}} tokens across {{.Stats.DeadTokenBlocks}} tool result(s) that entered the window and were never mentioned again</div>
+      <div class="hero-main">
+        <div class="n">{{.Stats.DeadTokensExact}}</div>
+        <div class="l">dead tokens — burned across {{.Stats.DeadTokenBlocks}} tool result(s) that entered the context window and were never mentioned again</div>
+      </div>
+      <div class="pct">{{.Stats.DeadTokenPct}} of everything entered</div>
     </div>
     <div class="stat-card"><div class="n">{{.Stats.TurnCount}}</div><div class="l">turns</div></div>
     <div class="stat-card"><div class="n">{{.Stats.Duration}}</div><div class="l">{{.Stats.StartClock}} → {{.Stats.EndClock}}</div></div>
