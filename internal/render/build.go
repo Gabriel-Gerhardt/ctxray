@@ -42,6 +42,7 @@ func buildStatsVM(s analyze.Stats) StatsVM {
 		TotalOutputTokens:   formatTokens(s.TotalOutputTokens),
 		TotalThinkingTokens: formatTokens(s.TotalThinkingTokens),
 		DeadTokens:          formatTokens(s.DeadTokens),
+		DeadTokensExact:     formatExact(s.DeadTokens),
 		DeadTokenPct:        formatPct(s.DeadTokenPct),
 		DeadTokenBlocks:     s.DeadTokenBlocks,
 	}

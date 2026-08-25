@@ -2,6 +2,7 @@ package render
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -14,6 +15,31 @@ func formatTokens(n int) string {
 	default:
 		return fmt.Sprintf("%d", n)
 	}
+}
+
+// formatExact renders the full integer with thousands separators
+// (27,834, not 27.8k) — for the one number on the page meant to be read
+// digit by digit, not skimmed.
+func formatExact(n int) string {
+	s := strconv.Itoa(n)
+	neg := ""
+	if len(s) > 0 && s[0] == '-' {
+		neg, s = "-", s[1:]
+	}
+	if len(s) <= 3 {
+		return neg + s
+	}
+	var out []byte
+	lead := len(s) % 3
+	if lead == 0 {
+		lead = 3
+	}
+	out = append(out, s[:lead]...)
+	for i := lead; i < len(s); i += 3 {
+		out = append(out, ',')
+		out = append(out, s[i:i+3]...)
+	}
+	return neg + string(out)
 }
 
 func formatPct(f float64) string {
