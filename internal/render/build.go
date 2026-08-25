@@ -48,15 +48,40 @@ func buildStatsVM(s analyze.Stats) StatsVM {
 	}
 }
 
+// minRowWidthPct keeps a nearly-empty turn visible as a sliver instead of
+// vanishing to a hairline — it should still read as "tiny", just not
+// literally invisible.
+const minRowWidthPct = 2.0
+
+// buildTurnVMs renders one flamegraph row per turn that actually added
+// tokens to the context window. A turn with a zero delta — everything it
+// needed was already cached — has nothing to show in an "inflow" chart:
+// on a long session those can be most of the turns, and drawing an empty
+// row for each just buries the ones that matter under scrolling.
 func buildTurnVMs(turns []analyze.Turn) []TurnVM {
-	out := make([]TurnVM, len(turns))
-	for i, t := range turns {
-		out[i] = TurnVM{
-			Index:      t.Index,
-			Clock:      formatClock(t.Timestamp),
-			DeltaLabel: "+" + formatTokens(t.ContextDelta),
-			Blocks:     buildBlockVMs(t.NewBlocks, t.ContextDelta),
+	maxDelta := 1
+	for _, t := range turns {
+		if t.ContextDelta > maxDelta {
+			maxDelta = t.ContextDelta
 		}
+	}
+
+	out := make([]TurnVM, 0, len(turns))
+	for _, t := range turns {
+		if t.ContextDelta <= 0 {
+			continue
+		}
+		rowWidth := 100 * float64(t.ContextDelta) / float64(maxDelta)
+		if rowWidth < minRowWidthPct {
+			rowWidth = minRowWidthPct
+		}
+		out = append(out, TurnVM{
+			Index:       t.Index,
+			Clock:       formatClock(t.Timestamp),
+			DeltaLabel:  "+" + formatTokens(t.ContextDelta),
+			RowWidthPct: rowWidth,
+			Blocks:      buildBlockVMs(t.NewBlocks, t.ContextDelta),
+		})
 	}
 	return out
 }

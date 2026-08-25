@@ -33,10 +33,11 @@ type StatsVM struct {
 }
 
 type TurnVM struct {
-	Index      int
-	Clock      string
-	DeltaLabel string
-	Blocks     []BlockVM
+	Index       int
+	Clock       string
+	DeltaLabel  string
+	RowWidthPct float64 // this turn's delta relative to the session's biggest turn — a real flamegraph encodes magnitude in length, not just in a text label
+	Blocks      []BlockVM
 }
 
 type BlockVM struct {
