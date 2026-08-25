@@ -7,38 +7,31 @@
 [![go version](https://img.shields.io/badge/go-1.24%2B-00ADD8?logo=go&logoColor=white)](go.mod)
 [![license](https://img.shields.io/github/license/Gabriel-Gerhardt/ctxray)](LICENSE)
 
-Point it at a Claude Code session transcript. Get back one HTML file that shows, turn by turn, where every token in the context window came from — and how much of it was never mentioned again.
+Your last agent run burned 180k tokens. Which ones actually did anything?
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
-  <img src="docs/hero.png" alt="the hero number: 27,788 dead tokens, 98.3% of everything entered">
-</picture>
+Point `ctxray` at a Claude Code session transcript and it answers that in one self-contained HTML file: turn by turn, where every token in the context window came from — and how much of it was never mentioned again.
 
-```
-$ ctxray my-session.jsonl
-ctxray: 17 turns · 28.3k tokens entered · peak window 28.3k
-ctxray: 98.3% dead context — 27.8k tokens across 10 tool result(s) never referenced again
-ctxray: report written to ctxray-report.html
-```
+![ctxray: one command, one report — 98.3% of this session's context was never referenced again](docs/demo.gif)
 
-I kept burning six-figure token budgets on a session and having no idea afterward what any of it actually bought me. Every agent CLI tells you *how many* tokens you spent; none of them will tell you *on what*. So `ctxray` reconstructs it from the transcript you already have on disk — no telemetry, no API key, no dashboard to sign up for.
+Every agent CLI tells you *how many* tokens you spent. None of them tell you *on what*. `ctxray` reconstructs it from the transcript already sitting on your disk — no telemetry, no API key, no dashboard to sign up for, no dependencies.
 
 ## Quickstart
 
 ```bash
-git clone https://github.com/Gabriel-Gerhardt/ctxray
-cd ctxray
-go build -o ctxray .
-./ctxray testdata/sample.jsonl -open
+go install github.com/Gabriel-Gerhardt/ctxray@latest
+ctxray ~/.claude/projects/*/*.jsonl -open
 ```
 
-That last command runs against the synthetic demo transcript checked into the repo (no real conversation content) so you can see a report before hunting down a real session file. Once you've got one:
+That's it — one binary, zero dependencies, and the report opens in your browser.
+
+No Go toolchain? Grab a prebuilt binary for your platform from [the latest release](https://github.com/Gabriel-Gerhardt/ctxray/releases/latest).
+
+Want to see a report before hunting down a real session file? The repo ships a synthetic demo transcript (no real conversation content):
 
 ```bash
-./ctxray ~/.claude/projects/*/*.jsonl -open
+git clone https://github.com/Gabriel-Gerhardt/ctxray && cd ctxray
+go run . testdata/sample.jsonl -open
 ```
-
-Or, once a release is tagged: `go install github.com/Gabriel-Gerhardt/ctxray@latest`
 
 ```
 Usage: ctxray [flags] <session.jsonl>
@@ -86,7 +79,6 @@ flowchart LR
 
 ## Use Cases
 
-- You ran an agent, it burned 180k tokens, and you have no idea where they went.
 - A huge `npm test` / `grep` / directory listing landed in context early and you want to know if anything downstream ever actually used it.
 - You're deciding whether a tool's output format (verbose logs vs. a summary) is worth the tokens it costs every time it's called.
 - You want a number to back up "my session was mostly dead weight" instead of a feeling.
