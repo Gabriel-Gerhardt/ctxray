@@ -16,7 +16,13 @@ Point `ctxray` at a Claude Code session transcript and it answers that in one se
   <img src="docs/screenshot.png" alt="full ctxray report: the dead-token headline, the five biggest dead blocks, and a bar per source showing where the context window went">
 </picture>
 
-Every agent CLI tells you *how many* tokens you spent. None of them tell you *on what*. `ctxray` reconstructs it from the transcript already sitting on your disk — no telemetry, no API key, no dashboard to sign up for, no dependencies.
+## About
+
+A long agent session is expensive in a way the totals hide. Nothing ever leaves the context window on its own, and every request re-sends the whole thing — so a 20k-token directory listing that lands on turn 3 isn't paid for once. It's re-sent with every turn after it, billed again each time (at the cheaper cache-read rate, but billed), and it goes on taking up room until the session compacts and starts throwing things away. The bigger cost is usually that: the junk crowds out what the model actually needed.
+
+Every agent CLI tells you *how many* tokens you spent. None of them tell you *on what*. The data to answer it is already sitting on your disk — Claude Code logs every message, tool call and tool result as the session runs, along with the exact usage Anthropic billed for each turn.
+
+`ctxray` reads that file and turns it into a single self-contained HTML report: what entered the context window, which tool put it there, and how much of it never came up again. One Go binary, no telemetry, no API key, no dashboard to sign up for, no dependencies.
 
 ## Quickstart
 
