@@ -10,10 +10,21 @@ type ViewModel struct {
 	GeneratedAt string
 	Models      string
 	Stats       StatsVM
+	TopDead     []TopDeadVM
 	Turns       []TurnVM
 	TimelineSVG template.HTML
 	Legend      []LegendItem
 	ToolCalls   []ToolCallVM
+}
+
+// TopDeadVM is one row of the plain-text "biggest dead weight" ranking —
+// no chart, no legend to learn, just a sorted list of what to go look at
+// first.
+type TopDeadVM struct {
+	Rank   int
+	Label  string
+	Tokens string
+	Slot   string
 }
 
 type StatsVM struct {
@@ -21,8 +32,6 @@ type StatsVM struct {
 	Duration            string
 	StartClock          string
 	EndClock            string
-	TotalContextEntered string
-	FinalContextTokens  string
 	PeakContextTokens   string
 	TotalOutputTokens   string
 	TotalThinkingTokens string
@@ -33,8 +42,7 @@ type StatsVM struct {
 }
 
 type TurnVM struct {
-	Index       int
-	Clock       string
+	RowTitle    string // "turn #14 · 00:36:37" — the index/clock live here, in the hover, instead of as two more columns competing with the bar for attention
 	DeltaLabel  string
 	RowWidthPct float64 // this turn's delta relative to the session's biggest turn — a real flamegraph encodes magnitude in length, not just in a text label
 	Blocks      []BlockVM
