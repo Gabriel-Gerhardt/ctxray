@@ -11,7 +11,10 @@ Your last agent run burned 160k tokens. Which ones actually did anything?
 
 Point `ctxray` at a Claude Code session transcript and it answers that in one self-contained HTML file: turn by turn, where every token in the context window came from — and how much of it was never mentioned again.
 
-![ctxray: one command, one report — nearly half of this two-hour session's context was never referenced again](docs/demo.gif)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+  <img src="docs/screenshot.png" alt="full ctxray report: the dead-token headline, the five biggest dead blocks, and a bar per source showing where the context window went">
+</picture>
 
 Every agent CLI tells you *how many* tokens you spent. None of them tell you *on what*. `ctxray` reconstructs it from the transcript already sitting on your disk — no telemetry, no API key, no dashboard to sign up for, no dependencies.
 
@@ -51,11 +54,6 @@ Claude Code writes one JSON object per line to `~/.claude/projects/<project>/<se
 3. **What never got used again.** Every tool result over a size threshold is checked against every assistant turn from that point on — its own reply included. If none of its distinctive content shows up anywhere later, it's flagged dead.
 
 The report leads with a plain sorted list — the five biggest dead blocks, no chart-reading required — then a bar per source underneath: everything Bash, Read, Grep, your own messages or the system prompt put into the window across the whole session, sorted worst-first, with the share that was never referenced again hatched inside each bar. Grouping by source rather than by turn is what makes it answer "which tool is eating my window"; a row per turn smears one tool's cost across dozens of bars. No server, no build step, no JavaScript — inline CSS only, so it opens the same from `file://` as it does hosted anywhere.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
-  <img src="docs/screenshot.png" alt="full ctxray report: the dead-token headline, the biggest dead blocks, and a bar per source showing where the context window went">
-</picture>
 
 Color is intentionally sparse — five fixed identities (user, Bash, Read, Grep, everything else) instead of a new hue per tool, so a session with twenty different MCP tools still reads as a handful of colors, not a rainbow. Anything not called out by name folds into "other" and gets named in the legend anyway.
 
