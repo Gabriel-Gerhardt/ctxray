@@ -121,7 +121,7 @@
 
   @media (max-width: 720px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    .src-row { grid-template-columns: 104px 48px 1fr; gap: 8px; font-size: 11px; }
+    .src-row { grid-template-columns: 88px 44px 1fr 66px; gap: 7px; font-size: 10.5px; }
     .stat-card { grid-column: span 1; }
     .stat-card.hero { grid-column: span 2; }
   }
@@ -145,7 +145,7 @@
   /* ---------- where the tokens came from ---------- */
   .flame-rows { display: flex; flex-direction: column; gap: 5px; }
   .src-row {
-    display: grid; grid-template-columns: 148px 54px 1fr;
+    display: grid; grid-template-columns: 148px 54px 1fr 82px;
     align-items: center; gap: 12px;
     font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 12px;
     outline: none;
@@ -156,6 +156,7 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .src-row .src-tokens { color: var(--ink-muted); text-align: right; }
+  .src-row .src-dead { color: var(--slot-dead); text-align: right; font-weight: 600; }
   .src-row:hover .block, .src-row:focus-visible .block { filter: brightness(1.14); }
   /* The track is the full-width lane every row shares, so rows stay
      comparable; the bar inside it is sized to this source's actual share
@@ -238,7 +239,7 @@
   {{end}}
 
   <h2>Where the tokens came from</h2>
-  <p class="caption">One bar per source, totalled across the whole session. Bar length is how much of the context window it accounts for, relative to the biggest source. The red hatch is the share that was never referenced again — only tool results can be judged, so the system bars are never hatched.</p>
+  <p class="caption">One bar per source, totalled across the whole session. Bar length is how much of the context window it accounts for, relative to the biggest source. The red hatch, and the figure beside each bar, is what that source put in and nothing ever read back.</p>
   <div class="panel">
     <div class="flame-rows">
       {{range .Sources}}
@@ -251,6 +252,7 @@
             <span class="block slot-{{.Slot}} dead" style="width:{{printf "%.3f" .DeadPct}}%;"></span>
           </div>
         </div>
+        <span class="src-dead">{{if .HasDead}}{{.DeadTokens}} dead{{end}}</span>
       </div>
       {{end}}
     </div>

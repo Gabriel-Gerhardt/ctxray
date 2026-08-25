@@ -149,6 +149,8 @@ func buildSourceVMs(turns []analyze.Turn, callCounts map[string]int) []SourceVM 
 			Label:        sourceLabel(s.source),
 			Slot:         string(slotFor(s.source)),
 			Tokens:       formatTokens(s.tokens),
+			DeadTokens:   formatTokens(s.dead),
+			HasDead:      s.dead > 0,
 			RowWidthPct:  rowWidth,
 			LiveWidthPct: 100 - deadPct,
 			DeadPct:      deadPct,

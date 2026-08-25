@@ -50,6 +50,8 @@ type SourceVM struct {
 	Label        string // "Bash", "user", "system / tool schemas"
 	Slot         string
 	Tokens       string
+	DeadTokens   string // what this source put in and nothing ever read back
+	HasDead      bool
 	RowWidthPct  float64 // this source's total against the biggest source's
 	LiveWidthPct float64 // share of this bar that did get referenced again
 	DeadPct      float64 // share of this bar that was never referenced again
