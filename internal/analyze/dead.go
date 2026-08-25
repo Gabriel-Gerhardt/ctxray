@@ -5,6 +5,19 @@ import "strings"
 const (
 	deadBlockMinChars = 120 // trivial outputs ("OK", a single number) aren't worth judging
 	maxSalientTokens  = 25
+
+	// minMatchEvidenceChars is how much distinctive text the assistant has
+	// to reproduce before a block counts as used, measured in characters of
+	// matched tokens rather than in a count of them.
+	//
+	// A plain count gets this backwards. Matching one common six-letter word
+	// out of twenty-five is the kind of thing that happens by accident, and
+	// treating it as proof made the verdict wildly asymmetric: a single hit
+	// declared a block used, while calling it dead required all twenty-five
+	// to miss. But matching one 38-character test name is not an accident —
+	// it is a quote. Length stands in for rarity here, and it is the right
+	// proxy: long identifiers are specific, short words are not.
+	minMatchEvidenceChars = 20
 )
 
 // markDeadBlocks flags every tool-result block whose distinctive content
@@ -43,18 +56,39 @@ func markDeadBlocks(wip []wipTurn) {
 			if len(salient) == 0 {
 				continue // nothing distinctive enough to judge either way
 			}
-			blk.Dead = !anyContains(later, salient)
+			// A block whose whole distinctive vocabulary is shorter than the
+			// bar can never clear it, so the bar drops to what that block
+			// actually has rather than condemning it for being terse.
+			need := minMatchEvidenceChars
+			if total := totalChars(salient); total < need {
+				need = total
+			}
+			blk.Dead = matchedChars(later, salient, need) < need
 		}
 	}
 }
 
-func anyContains(haystack string, needles []string) bool {
+// matchedChars sums the length of every needle the haystack contains,
+// stopping once it has seen enough to settle the verdict.
+func matchedChars(haystack string, needles []string, enough int) int {
+	weight := 0
 	for _, n := range needles {
 		if strings.Contains(haystack, n) {
-			return true
+			weight += len(n)
+			if weight >= enough {
+				return weight
+			}
 		}
 	}
-	return false
+	return weight
+}
+
+func totalChars(needles []string) int {
+	n := 0
+	for _, s := range needles {
+		n += len(s)
+	}
+	return n
 }
 
 // stopWords are long-but-common words that would otherwise look
@@ -79,13 +113,10 @@ var stopWords = map[string]bool{
 	"system": true, "public": true, "private": true, "static": true,
 }
 
-// salientTokens pulls the distinctive words out of a block of text — long
-// enough to be meaningful, common words filtered out — and samples them
-// evenly across the text rather than taking only the first few, so a
-// 10,000-line grep dump isn't judged solely by its first screen.
-func salientTokens(text string, max int) []string {
-	var words []string
-	seen := map[string]bool{}
+// forEachWord walks the judgeable words of a text: long enough to carry
+// meaning, lowercased, with the everyday-and-code vocabulary filtered out.
+// Callers may still see the same word twice; deduping is theirs to do.
+func forEachWord(text string, fn func(string)) {
 	var cur strings.Builder
 	flush := func() {
 		if cur.Len() == 0 {
@@ -93,11 +124,10 @@ func salientTokens(text string, max int) []string {
 		}
 		w := strings.ToLower(cur.String())
 		cur.Reset()
-		if len(w) < 6 || stopWords[w] || seen[w] {
+		if len(w) < 6 || stopWords[w] {
 			return
 		}
-		seen[w] = true
-		words = append(words, w)
+		fn(w)
 	}
 	for _, r := range text {
 		if isWordRune(r) {
@@ -107,6 +137,22 @@ func salientTokens(text string, max int) []string {
 		}
 	}
 	flush()
+}
+
+// salientTokens pulls the distinctive words out of a block of text — long
+// enough to be meaningful, common words filtered out — and samples them
+// evenly across the text rather than taking only the first few, so a
+// 10,000-line grep dump isn't judged solely by its first screen.
+func salientTokens(text string, max int) []string {
+	var words []string
+	seen := map[string]bool{}
+	forEachWord(text, func(w string) {
+		if seen[w] {
+			return
+		}
+		seen[w] = true
+		words = append(words, w)
+	})
 
 	if len(words) <= max {
 		return words
